@@ -111,5 +111,9 @@ impl Line {
         }
         closest_intersection
     }
+
+    pub fn to_string(&self) -> String {
+        format!("Point: {}, Direction: {}", self.point.to_string(), self.direction.to_string())
+    }
 }
 

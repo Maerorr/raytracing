@@ -9,6 +9,7 @@ use triangle::Triangle;
 use vector::*;
 use point::*;
 use mat4::*;
+use crate::intersection::Intersection;
 use crate::line::Line;
 use crate::math::{as_degrees, as_radians};
 use crate::quaternion::Quaternion;
@@ -83,20 +84,80 @@ pub fn draw_slider(d: &mut RaylibDrawHandle, text: String, x: i32, y: &mut i32, 
     out
 }
 
+pub fn zadanie1() {
+    let v1 = Vector::new(0.0, 3.0, 0.0);
+    let v2 = Vector::new(5.0, 5.0, 0.0);
+    let anglev1v2 = v1.angle_degrees(&v2);
+    println!("angle: {}", anglev1v2); // checks
+
+    let v1 = Vector::new(4.0, 5.0, 1.0);
+    let v2 = Vector::new(4.0, 1.0, 3.0);
+    let mut perpendicular = v1.cross(&v2);
+    println!("perpendicular: {}", perpendicular.to_string()); // checks
+    perpendicular.normalize();
+    println!("perpendicular normalized: {}", perpendicular.to_string()); // checks
+
+    let sphere = Sphere::new(
+        Vector::new(0.0, 0.0, 0.0),
+        10.0,
+        Vector::new(255.0, 0.0, 0.0)
+    );
+
+    let ray = Line::new(
+        Vector::new(0.0, 0.0, -20.0),
+        Vector::new(0.0, 0.0, 1.0)
+    );
+
+    let ray_y = Line::new(
+        Vector::new(0.0, 0.0, -20.0),
+        Vector::new(0.0, 1.0, 0.0)
+    );
+
+    let hit1 = sphere.intersect(&ray);
+    let hit2 = sphere.intersect(&ray_y);
+    println!("hit1: {:?}", hit1.hit);
+    println!("hit2: {:?}", hit2.hit);
+
+    let ray_single_point_hit = Line::new(
+        Vector::new(0.0, 10.0, -20.0),
+        Vector::new(0.0, 0.0, 1.0)
+    );
+    let hit3 = sphere.intersect(&ray_single_point_hit);
+    println!("hit3: {:?}", hit3.hit);
+
+    let v = Vector::new(1.0, 0.0, 0.0); // x axis
+    let mut w = Vector::new(0.0, -1.0, 1.0); // half y half z -> 45 degrees
+    w.normalize();
+    let mut norm = v.cross(&w);
+    norm.normalize();
+    let surface = Surface::new_vw(Vector::new(0.0, 0.0, 0.0), v, w, None, None, norm);
+    let hit_surf = surface.intersect(&ray_y);
+    println!("hit_surf: {:?}", hit_surf.hit);
+
+    let triangle = Triangle::new(
+        [Vector::new(0.0, 0.0, 0.0),
+        Vector::new(1.0, 0.0, -1.0),
+        Vector::new(0.0, 1.0, 0.0)],
+        Vector::new(0.0, 255.0, 0.0)
+    );
+
+    let start = Vector::new(-1.0, 0.5, -0.5);
+    let end = Vector::new(1.0, 0.5, -0.5);
+    let mut dir = end - start;
+    dir.normalize();
+
+    let tri_ray = Line::new(
+        start,
+        dir
+    );
+
+    let hit_tri = triangle.intersect(&tri_ray);
+    println!("hit_tri: {:?}", hit_tri.hit);
+}
+
 fn main() {
-
-    let mut vec = Vector::new(1.0, 2.0, 3.0);
-    let mut mat = Mat4::identity();
-    mat.scale(Vector::new(2.0, 2.0, 2.0));
-    println!("{}", mat.to_string());
-    let vec2 = vec * mat;
-    assert_eq!(vec2, Vector::new(2.0, 4.0, 6.0));
-    vec = Vector::new(1.0, 0.0, 0.0);
-    let mut mat = Mat4::identity();
-    mat.rotate(as_radians(90.0), Vector::new(0.0, 1.0, 0.0));
-    let vec2 = vec * mat;
-    assert_eq!(vec2, Vector::new(0.0, 0.0, -1.0));
-
+    zadanie1();
+    return;
     let mut scene = Scene::new();
 
     let mut q = Quaternion::identity();
@@ -109,43 +170,43 @@ fn main() {
         Vector::new(0.0, 0.0, 15.0),
         Vector::new(1.0, 0.0, 0.0),
         Vector::new(0.0, 1.0, 0.0),
-        (-15.0, 15.0),
-        (-15.0, 15.0),
+        Some((-15.0, 15.0)),
+        Some((-15.0, 15.0)),
         Vector::new(0.0, 0.0, -1.0));
     let mut back = Surface::new_vw(
         Vector::new(0.0, 0.0, -15.0),
         Vector::new(1.0, 0.0, 0.0),
         Vector::new(0.0, 1.0, 0.0),
-        (-15.0, 15.0),
-        (-15.0, 15.0),
+        Some((-15.0, 15.0)),
+        Some((-15.0, 15.0)),
         Vector::new(0.0, 0.0, 1.0));
     let mut left = Surface::new_vw(
         Vector::new(-15.0, 0.0, 0.0),
         Vector::new(0.0, 0.0, 1.0),
         Vector::new(0.0, 1.0, 0.0),
-        (-15.0, 15.0),
-        (-15.0, 15.0),
+        Some((-15.0, 15.0)),
+        Some((-15.0, 15.0)),
         Vector::new(1.0, 0.0, 0.0));
     let mut right = Surface::new_vw(
         Vector::new(15.0, 0.0, 0.0),
         Vector::new(0.0, 0.0, 1.0),
         Vector::new(0.0, 1.0, 0.0),
-        (-15.0, 15.0),
-        (-15.0, 15.0),
+        Some((-15.0, 15.0)),
+        Some((-15.0, 15.0)),
         Vector::new(-1.0, 0.0, 0.0));
     let mut top = Surface::new_vw(
         Vector::new(0.0, 15.0, 0.0),
         Vector::new(1.0, 0.0, 0.0),
         Vector::new(0.0, 0.0, 1.0),
-        (-15.0, 15.0),
-        (-15.0, 15.0),
+        Some((-15.0, 15.0)),
+        Some((-15.0, 15.0)),
         Vector::new(0.0, -1.0, 0.0));
     let mut bottom = Surface::new_vw(
         Vector::new(0.0, -15.0, 0.0),
         Vector::new(1.0, 0.0, 0.0),
         Vector::new(0.0, 0.0, 1.0),
-        (-15.0, 15.0),
-        (-15.0, 15.0),
+        Some((-15.0, 15.0)),
+        Some((-15.0, 15.0)),
         Vector::new(0.0, 1.0, 0.0));
 
     
@@ -158,11 +219,12 @@ fn main() {
 
     for surface in scene.surfaces.iter_mut() {
         surface.rotate(&q);
+        surface.translate(&Vector::new(-150.0, 00.0, 0.0));
     }
 
     let sphere = Sphere::new(
-        Vector::new(60.0, -60.0, 0.0),
-        40.0,
+        Vector::new(190.0, 0.0, 0.0),
+        20.0,
         Vector::new(255.0, 0.0, 0.0)
     );
 
@@ -175,18 +237,18 @@ fn main() {
         Vector::new(0.0, 255.0, 0.0)
     );
 
-    println!("{:?}", triangle.normal);
+    //println!("{:?}", triangle.normal);
 
     scene.add_triangle(triangle);
 
     let triangle = Triangle::new(
         [Vector::new(100.0, 0.0, 0.0),
         Vector::new(70.0, 40.0, 0.0),
-        Vector::new(30.0, 0.0, -100.0)],
+        Vector::new(30.0, 0.0, 100.0)],
         Vector::new(0.0, 255.0, 0.0)
     );
 
-    println!("{:?}", triangle.normal);
+    //println!("{:?}", triangle.normal);
 
     scene.add_triangle(triangle);
 
@@ -194,7 +256,7 @@ fn main() {
 
     let mut q: Quaternion = Quaternion::identity();
 
-    let mut camera_pos = Vector::new(0.0, 0.0, 50.0);
+    let camera_pos = Vector::new(0.0, 0.0, -100.0);
 
     let mut camera = Camera::new(
         camera_pos.clone(),
@@ -203,37 +265,48 @@ fn main() {
         Vector::new(0.0, 1.0, 0.0),
         Vector::new(1.0, 0.0, 0.0));
 
-    camera.set_perspective(120.0, 1.0, 1000.0);
+    camera.perspective = true;
 
-    let mut cube_color: Color = Color::new(255, 0, 0, 255);
+    let cube_color: Color = Color::new(255, 0, 0, 255);
 
     let mut img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
-        hits = camera.render_scene(&scene);
+    hits = camera.render_scene(&scene);
 
-        for hit in hits.iter() {
-            if hit.is_some() {
-                let color_value = {
-                    let angle_cos = hit.angle().cos();
-                    if angle_cos >= 0.0 {
-                        angle_cos.sqrt()
-                    } else {
-                        angle_cos.abs().sqrt()
-                    }
-                };
+    for hit in hits.iter() {
+        if hit.is_some() {
+            let color_value = {
+                let angle_cos = hit.angle().cos();
+                if angle_cos >= 0.0 {
+                    angle_cos.sqrt()
+                } else {
+                    angle_cos.abs().sqrt()
+                }
+            };
 
-                let color = Color::new(
-                    ((color_value) * cube_color.r as f64) as u8,
-                    ((color_value) * cube_color.g as f64) as u8,
-                    ((color_value) * cube_color.b as f64) as u8,
-                    255);
-                let (i, mut j) = hit.pos_on_screen;
-                //print!("i: {}, j: {}, ", i, j);
-                j = -j;
+            let color = Color::new(
+                ((color_value) * cube_color.r as f64) as u8,
+                ((color_value) * cube_color.g as f64) as u8,
+                ((color_value) * cube_color.b as f64) as u8,
+                255);
+            let (i, mut j) = hit.pos_on_screen;
+            j = -j;
 
-                img.put_pixel((i + OFFSET.0) as u32, (j + OFFSET.1) as u32, image::Rgba([color.r, color.g, color.b, color.a]));
+            img.put_pixel((i + OFFSET.0) as u32, (j + OFFSET.1) as u32, image::Rgba([color.r, color.g, color.b, color.a]));
 
+        }
+    }
+
+    if camera.perspective {
+        // flip img vertically and horizontally
+        let mut flipped_img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
+        for i in 0..img.width() {
+            for j in 0..img.height() {
+                let pixel = img.get_pixel(i as u32, j as u32);
+                flipped_img.put_pixel((img.width() - i - 1) as u32, (img.height() - j - 1) as u32, *pixel);
             }
         }
-
-    img.save("output.png").unwrap();
+        flipped_img.save("outputflip.png").unwrap();
+    } else {
+        img.save("output.png").unwrap();
+    }   
 }

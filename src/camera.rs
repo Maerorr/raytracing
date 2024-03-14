@@ -21,10 +21,7 @@ pub struct Camera {
     debug: String,
     pub backface_culling: bool,
     pub perspective: bool,
-    pub fov: f64,
-    pub far: f64,
-    pub near: f64,
-    pub projection_matrix: Mat4
+    pub pinhole_distance: f64,
 }
 
 impl Camera {
@@ -40,31 +37,25 @@ impl Camera {
             debug: String::new(),
             backface_culling: false,
             perspective: false,
-            fov: 90.0,
-            far: 1000.0,
-            near: 0.05,
-            projection_matrix: Mat4::identity()
+            pinhole_distance: 128.0,
         }
     }
 
-    pub fn set_perspective(&mut self, fov: f64, far: f64, near: f64) {
-        self.perspective = true;
-        // create projection matrix
-        let scale = 1.0 / (fov * 0.5 * PI / 180.0).tan();
-        let mut m = Mat4::identity();
-        m.m[0][0] = scale;
-        m.m[1][1] = scale;
-        m.m[2][2] = -far / (far - near);
-        m.m[3][2] = -far * near / (far - near);
-        m.m[3][2] = -1.0;
-        m.m[3][3] = 0.0;
-        //m.transpose();
-        println!("Projection matrix: \n{}", m.to_string());
-        self.projection_matrix = m;
-        self.fov = fov;
-        self.far = far;
-        self.near = near;
-    }
+    // pub fn set_perspective(&mut self, fov: f64, far: f64, near: f64) {
+    //     self.perspective = true;
+    //     // create projection matrix
+    //     let scale = 1.0 / (fov * 0.5 * PI / 180.0).tan();
+    //     let mut m = Mat4::identity();
+    //     m.m[0][0] = scale;
+    //     m.m[1][1] = scale;
+    //     m.m[2][2] = -far / (far - near);
+    //     m.m[3][2] = -far * near / (far - near);
+    //     m.m[3][2] = -1.0;
+    //     m.m[3][3] = 0.0;
+    //     //m.transpose();
+    //     println!("Projection matrix: \n{}", m.to_string());
+    //     self.projection_matrix = m;
+    // }
 
     pub fn render(&mut self, object: &Object) -> Vec<RayCastHit> {
         // THIS IS JUST TO ROTATE THE CAMERA ONCE PER RENDER WITHOUT IT SPINNING AROUND
@@ -109,9 +100,9 @@ impl Camera {
         let mut hits: Vec<RayCastHit> = Vec::new();
         if !self.perspective {
 
-            for tri in &scene.triangles {
-                println!("{}", tri.to_string());
-            }
+            // for tri in &scene.triangles {
+            //     println!("{}", tri.to_string());
+            // }
 
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
@@ -182,34 +173,32 @@ impl Camera {
                 }
             }
         } else {
-            let mut triangles: Vec<Triangle> = Vec::new();
-            for triangle in scene.triangles.to_vec() {
-                let mut t = triangle.clone();
-                for v in t.vertices.iter_mut() {
-                    *v = *v * self.projection_matrix;
-                    if v.w != 1.0 {
-                        *v = *v / v.w;
-                    }
-                }
-                triangles.push(t);
-            }
-
-
             // render with perspective using projection matrix
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
                     let mut closest_intersection = RayCastHit::new(None);
                     let mut closest_distance = 0.0;
+                    //implement a 'pinhole' camera
+                    let front = self.right.cross(&self.up);
+                    //println!("Front: {}", front.to_string());
 
-                    l.point = point + up * i as f64 + right * j as f64;
-                    for triangle in &triangles {                      
-                        let mut hit = triangle.intersect(&l);
+                    let line_point = self.default.0 + up * i as f64 + right * j as f64 + front * -self.pinhole_distance;
+                    //println!("Line point: {}", line_point.to_string());
+                    let mut line_dir = (self.default.0) - line_point;
+                    //print!("pinhole point: {}, line point: {}", (self.default.0).to_string(), line_point.to_string());
+                    line_dir.normalize();
+                    let line = Line::new(line_point, line_dir);
+                    //println!("Line: {}", line.to_string());
+                    //return vec![];
+
+                    for surface in &scene.surfaces {
+                        let hit = surface.intersect(&line);
                         if hit.is_some() {
-                            let from_cam_to_point = hit.unwrap().0 - l.point;
+                            let from_cam_to_point = hit.unwrap().0 - line.point;
                 
-                            if from_cam_to_point.dot(&l.direction) >= 0.0 {
+                            if from_cam_to_point.dot(&line.direction) >= 0.0 {
                                 let intersection = hit.unwrap();
-                                let distance = l.point.distance(&intersection.0);
+                                let distance = line.point.distance(&intersection.0);
                 
                                 if closest_intersection.is_none() {
                                     closest_intersection = RayCastHit::new(Some(intersection));
@@ -221,6 +210,45 @@ impl Camera {
                             }
                         }
                     }
+                    for sphere in &scene.spheres {
+                        let hit = sphere.intersect(&line);
+                        if hit.is_some() {
+                            let from_cam_to_point = hit.unwrap().0 - line.point;
+                
+                            if from_cam_to_point.dot(&line.direction) >= 0.0 {
+                                let intersection = hit.unwrap();
+                                let distance = line.point.distance(&intersection.0);
+                
+                                if closest_intersection.is_none() {
+                                    closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_distance = distance;
+                                } else if distance < closest_distance {
+                                    closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_distance = distance;
+                                }
+                            }
+                        }
+                    }
+                    for triangle in &scene.triangles {
+                        let hit = triangle.intersect(&line);
+                        if hit.is_some() {
+                            let from_cam_to_point = hit.unwrap().0 - line.point;
+                
+                            if from_cam_to_point.dot(&line.direction) >= 0.0 {
+                                let intersection = hit.unwrap();
+                                let distance = line.point.distance(&intersection.0);
+                
+                                if closest_intersection.is_none() {
+                                    closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_distance = distance;
+                                } else if distance < closest_distance {
+                                    closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_distance = distance;
+                                }
+                            }
+                        }
+                    }
+
                     closest_intersection.pos_on_screen = (j, i);
                     hits.push(closest_intersection);
                 }

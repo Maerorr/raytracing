@@ -20,10 +20,10 @@ impl Surface {
     }
 
     // create surface from point and two vectors
-    pub fn new_vw(point: Vector, v: Vector, w: Vector, max_v: (f64, f64), max_w: (f64, f64), normal: Vector) -> Surface {
+    pub fn new_vw(point: Vector, v: Vector, w: Vector, max_v: Option<(f64, f64)>, max_w: Option<(f64, f64)>, normal: Vector) -> Surface {
         // let mut normal = v.cross(&w);
         // normal.normalize();
-        Surface { point, v: Some(v), w: Some(w), max_v: Some(max_v), max_w: Some(max_w), normal}
+        Surface { point, v: Some(v), w: Some(w), max_v: max_v, max_w: max_w, normal}
     }
 
     // return the distance from the surface to a point
@@ -50,6 +50,12 @@ impl Surface {
     // returns expression Q + tv + sw. Returns None if surface was not defined with v and w. Or if t or s are outside the bounds of the surface.
     pub fn point_on_surface(&self, t: &f64, s: &f64) -> Option<Vector> {
         if self.v.is_some() && self.w.is_some() {
+            if self.max_v.is_none() || self.max_w.is_none() {
+                //ignore bounds
+                let v = self.v.unwrap() * *t;
+                let w = self.w.unwrap() * *s;
+                return Some(self.point + v + w);
+            }
             return if *t > self.max_v.unwrap().1 || *t < self.max_v.unwrap().0 || *s > self.max_w.unwrap().1 || *s < self.max_w.unwrap().0 {
                 None
             } else {
@@ -87,6 +93,9 @@ impl Surface {
         v1 *= s;
         v2 *= s;
         self.max_w = Some((v1, v2));
+    }
 
+    pub fn translate(&mut self, v: &Vector) {
+        self.point += *v;
     }
 }

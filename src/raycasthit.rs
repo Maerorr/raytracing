@@ -1,7 +1,8 @@
 use crate::Vector;
 
+#[derive(Debug, Clone, Copy)]
 pub struct RayCastHit {
-    hit: Option<(Vector, f64)>,
+    pub hit: Option<(Vector, f64)>,
     pub pos_on_screen: (i32, i32),
 }
 
