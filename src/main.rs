@@ -153,6 +153,7 @@ pub fn zadanie1() {
 
     let hit_tri = triangle.intersect(&tri_ray);
     println!("hit_tri: {:?}", hit_tri.hit);
+    println!("USING THE MOLLER-TRUMBORE METHOD IF A LINE IS PARALLEL IT *DOES NOT* INTERSECT THE TRIANGLE. EVEN IF IT LIES ON THE TRIANGLE.");
 }
 
 fn main() {
