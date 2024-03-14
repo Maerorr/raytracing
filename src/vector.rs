@@ -103,6 +103,24 @@ impl Vector {
         let out: String = format!("[{:.2}, {:.2}, {:.2}]", self.x, self.y, self.z);
         out
     }
+
+    pub fn multiply_by_matrix(&self, mat: &Mat4) -> Vector {
+        let mut out = Vector::new(0.0, 0.0, 0.0);
+
+        println!("{}", mat.to_string());
+        out.x = self.x * mat.m[0][0] + self.y * mat.m[0][1] + self.z * mat.m[0][2] + self.w * mat.m[0][3];
+        out.y = self.x * mat.m[1][0] + self.y * mat.m[1][1] + self.z * mat.m[1][2] + self.w * mat.m[1][3];
+        out.z = self.x * mat.m[2][0] + self.y * mat.m[2][1] + self.z * mat.m[2][2] + self.w * mat.m[2][3];
+        out.w = self.x * mat.m[3][0] + self.y * mat.m[3][1] + self.z * mat.m[3][2] + self.w * mat.m[3][3];
+
+        if out.w != 1.0 {
+            out.x /= out.w;
+            out.y /= out.w;
+            out.z /= out.w;
+        }
+
+        out
+    }
 }
 
 // + operator overload
@@ -169,10 +187,10 @@ impl ops::Mul<Mat4> for Vector {
 
     fn mul(self, mat: Mat4) -> Vector {
         let mut out = Vector::new(0.0, 0.0, 0.0);
-        out.x = self.x * mat.m[0][0] + self.y * mat.m[0][1] + self.z * mat.m[0][2] + self.w * mat.m[0][3];
-        out.y = self.x * mat.m[1][0] + self.y * mat.m[1][1] + self.z * mat.m[1][2] + self.w * mat.m[1][3];
-        out.z = self.x * mat.m[2][0] + self.y * mat.m[2][1] + self.z * mat.m[2][2] + self.w * mat.m[2][3];
-        out.w = self.x * mat.m[3][0] + self.y * mat.m[3][1] + self.z * mat.m[3][2] + self.w * mat.m[3][3];
+        out.x = self.x * mat.m[0][0] + self.y * mat.m[0][1] + self.z * mat.m[0][2] + mat.m[0][3];
+        out.y = self.x * mat.m[1][0] + self.y * mat.m[1][1] + self.z * mat.m[1][2] + mat.m[1][3];
+        out.z = self.x * mat.m[2][0] + self.y * mat.m[2][1] + self.z * mat.m[2][2] + mat.m[2][3];
+        out.w = self.x * mat.m[3][0] + self.y * mat.m[3][1] + self.z * mat.m[3][2] + mat.m[3][3];
         out
     }
 }
@@ -193,7 +211,7 @@ impl ops::Div<f64> for Vector {
 
     fn div(self, scalar: f64) -> Vector {
         if scalar == 0.0 {
-            print!("Warning: division by zero. Vector values were not altered.");
+            println!("Warning: division by zero. Vector values were not altered.");
             return self;
         } else
         {

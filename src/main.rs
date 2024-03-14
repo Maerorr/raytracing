@@ -3,6 +3,9 @@ use std::io::Write;
 use float_cmp::{approx_eq, F64Margin};
 use image::{DynamicImage, ImageBuffer};
 use raylib::ffi::ImageFormat;
+use scene::Scene;
+use sphere::Sphere;
+use triangle::Triangle;
 use vector::*;
 use point::*;
 use mat4::*;
@@ -27,8 +30,12 @@ mod line;
 mod object;
 mod camera;
 mod raycasthit;
+mod intersection;
+mod sphere;
+mod scene;
+mod triangle;
 
-const RENDER_WIDTH: i32 = 256;
+const RENDER_WIDTH: i32 = 512;
 const RENDER_HEIGHT: i32 = 256;
 
 const OFFSET: (i32, i32) = (RENDER_WIDTH / 2, RENDER_HEIGHT / 2);
@@ -42,7 +49,6 @@ static BG_COLOR: Color = Color {
 };
 
 pub fn save_to_file(hits: &Vec<RayCastHit>) {
-    //save to file as ASCII
     let mut file = File::create("output.txt").unwrap();
 
     for (i, hit) in hits.iter().enumerate() {
@@ -78,6 +84,27 @@ pub fn draw_slider(d: &mut RaylibDrawHandle, text: String, x: i32, y: &mut i32, 
 }
 
 fn main() {
+
+    let mut vec = Vector::new(1.0, 2.0, 3.0);
+    let mut mat = Mat4::identity();
+    mat.scale(Vector::new(2.0, 2.0, 2.0));
+    println!("{}", mat.to_string());
+    let vec2 = vec * mat;
+    assert_eq!(vec2, Vector::new(2.0, 4.0, 6.0));
+    vec = Vector::new(1.0, 0.0, 0.0);
+    let mut mat = Mat4::identity();
+    mat.rotate(as_radians(90.0), Vector::new(0.0, 1.0, 0.0));
+    let vec2 = vec * mat;
+    assert_eq!(vec2, Vector::new(0.0, 0.0, -1.0));
+
+    let mut scene = Scene::new();
+
+    let mut q = Quaternion::identity();
+
+    q.rotate(as_radians(15.0), Vector::new(1.0, 0.0, 0.0));
+    q.rotate(as_radians(15.0), Vector::new(0.0, 1.0, 0.0));
+    q.rotate(as_radians(15.0), Vector::new(0.0, 0.0, 1.0));
+
     let mut front = Surface::new_vw(
         Vector::new(0.0, 0.0, 15.0),
         Vector::new(1.0, 0.0, 0.0),
@@ -121,18 +148,51 @@ fn main() {
         (-15.0, 15.0),
         Vector::new(0.0, 1.0, 0.0));
 
-    let mut surfaces = vec![front, back, left, right, top, bottom];
+    
+    scene.add_surface(front);
+    scene.add_surface(back);
+    scene.add_surface(left);
+    scene.add_surface(right);
+    scene.add_surface(top);
+    scene.add_surface(bottom);
 
-    let mut surfaces = Object::new(surfaces);
+    for surface in scene.surfaces.iter_mut() {
+        surface.rotate(&q);
+    }
+
+    let sphere = Sphere::new(
+        Vector::new(60.0, -60.0, 0.0),
+        40.0,
+        Vector::new(255.0, 0.0, 0.0)
+    );
+
+    scene.add_sphere(sphere);
+
+    let triangle = Triangle::new(
+        [Vector::new(-100.0, 0.0, 0.0),
+        Vector::new(-70.0, 40.0, 0.0),
+        Vector::new(-30.0, 0.0, 0.0)],
+        Vector::new(0.0, 255.0, 0.0)
+    );
+
+    println!("{:?}", triangle.normal);
+
+    scene.add_triangle(triangle);
+
+    let triangle = Triangle::new(
+        [Vector::new(100.0, 0.0, 0.0),
+        Vector::new(70.0, 40.0, 0.0),
+        Vector::new(30.0, 0.0, -100.0)],
+        Vector::new(0.0, 255.0, 0.0)
+    );
+
+    println!("{:?}", triangle.normal);
+
+    scene.add_triangle(triangle);
 
     let mut hits: Vec<RayCastHit> = Vec::new();
 
     let mut q: Quaternion = Quaternion::identity();
-
-    let mut camera_q: Quaternion = Quaternion::identity();
-
-    let (mut x, mut y, mut z) = (0.0, 0.0, 0.0);
-    let (mut cam_x, mut cam_y, mut cam_z) = (0.0, 0.0, 0.0);
 
     let mut camera_pos = Vector::new(0.0, 0.0, 50.0);
 
@@ -143,17 +203,12 @@ fn main() {
         Vector::new(0.0, 1.0, 0.0),
         Vector::new(1.0, 0.0, 0.0));
 
-    let mut first_frame: bool = true;
+    camera.set_perspective(120.0, 1.0, 1000.0);
 
     let mut cube_color: Color = Color::new(255, 0, 0, 255);
 
-    q.rotate(as_radians(45 as f64), Vector::new(1.0, 0.0, 0.0));
-    q.rotate(as_radians(45 as f64), Vector::new(0.0, 1.0, 0.0));
-    q.rotate(as_radians(45 as f64), Vector::new(0.0, 0.0, 1.0));
-    surfaces.rotate(&q);
-
     let mut img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
-        hits = camera.render(&surfaces);
+        hits = camera.render_scene(&scene);
 
         for hit in hits.iter() {
             if hit.is_some() {
@@ -172,6 +227,7 @@ fn main() {
                     ((color_value) * cube_color.b as f64) as u8,
                     255);
                 let (i, mut j) = hit.pos_on_screen;
+                //print!("i: {}, j: {}, ", i, j);
                 j = -j;
 
                 img.put_pixel((i + OFFSET.0) as u32, (j + OFFSET.1) as u32, image::Rgba([color.r, color.g, color.b, color.a]));
