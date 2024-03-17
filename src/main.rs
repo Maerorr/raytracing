@@ -87,13 +87,17 @@ pub fn draw_slider(d: &mut RaylibDrawHandle, text: String, x: i32, y: &mut i32, 
 pub fn zadanie1() {
     let v1 = Vector::new(0.0, 3.0, 0.0);
     let v2 = Vector::new(5.0, 5.0, 0.0);
+
+    println!("v1 + v2 = {}", (v1 + v2).to_string()); // checks
+    println!("v2 + v1 = {}", (v2 + v1).to_string()); // checks
+
     let anglev1v2 = v1.angle_degrees(&v2);
-    println!("angle: {}", anglev1v2); // checks
+    println!("angle between [0,3,0] and [5,5,0]: {:.2} degrees or {} radians", anglev1v2, v1.angle_radians(&v2)); // checks
 
     let v1 = Vector::new(4.0, 5.0, 1.0);
     let v2 = Vector::new(4.0, 1.0, 3.0);
     let mut perpendicular = v1.cross(&v2);
-    println!("perpendicular: {}", perpendicular.to_string()); // checks
+    println!("perpendicular to [4,5,1] and [4,1,3]: {}", perpendicular.to_string()); // checks
     perpendicular.normalize();
     println!("perpendicular normalized: {}", perpendicular.to_string()); // checks
 
@@ -115,15 +119,16 @@ pub fn zadanie1() {
 
     let hit1 = sphere.intersect(&ray);
     let hit2 = sphere.intersect(&ray_y);
-    println!("hit1: {:?}", hit1.hit);
-    println!("hit2: {:?}", hit2.hit);
+    println!("Intersection S and R1: {:?}", hit1.hit);
+    println!("Intersection S and R2: {:?}", hit2.hit);
 
     let ray_single_point_hit = Line::new(
         Vector::new(0.0, 10.0, -20.0),
         Vector::new(0.0, 0.0, 1.0)
     );
     let hit3 = sphere.intersect(&ray_single_point_hit);
-    println!("hit3: {:?}", hit3.hit);
+    println!("Vector that hits sphere in exactly one point: {}", ray.to_string());
+    println!("that single hit: {:?}", hit3.hit);
 
     let v = Vector::new(1.0, 0.0, 0.0); // x axis
     let mut w = Vector::new(0.0, -1.0, 1.0); // half y half z -> 45 degrees
@@ -132,17 +137,17 @@ pub fn zadanie1() {
     norm.normalize();
     let surface = Surface::new_vw(Vector::new(0.0, 0.0, 0.0), v, w, None, None, norm);
     let hit_surf = surface.intersect(&ray_y);
-    println!("hit_surf: {:?}", hit_surf.hit);
+    println!("Intersection of P and R2: {:?}", hit_surf.hit);
 
     let triangle = Triangle::new(
         [Vector::new(0.0, 0.0, 0.0),
-        Vector::new(1.0, 0.0, -1.0),
+        Vector::new(1.0, 0.0, 0.0),
         Vector::new(0.0, 1.0, 0.0)],
-        Vector::new(0.0, 255.0, 0.0)
+        Vector::new(0.0, 0.0, 0.0)
     );
 
-    let start = Vector::new(-1.0, 0.5, -0.5);
-    let end = Vector::new(1.0, 0.5, -0.5);
+    let start = Vector::new(-1.0, 0.5, 0.0);
+    let end = Vector::new(1.0, 0.5, 0.0);
     let mut dir = end - start;
     dir.normalize();
 
@@ -152,8 +157,35 @@ pub fn zadanie1() {
     );
 
     let hit_tri = triangle.intersect(&tri_ray);
-    println!("hit_tri: {:?}", hit_tri.hit);
-    println!("USING THE MOLLER-TRUMBORE METHOD IF A LINE IS PARALLEL IT *DOES NOT* INTERSECT THE TRIANGLE. EVEN IF IT LIES ON THE TRIANGLE.");
+
+    println!("Intersection of first ray and triangle: {:?}", hit_tri.hit);
+    //println!("USING THE MOLLER-TRUMBORE METHOD IF A LINE IS PARALLEL IT *DOES NOT* INTERSECT THE TRIANGLE. EVEN IF IT LIES ON THE TRIANGLE.");
+
+    let start = Vector::new(2.0, -1.0, 0.0);
+    let end = Vector::new(2.0, 2.0, 0.0);
+    let mut dir = end - start;
+    dir.normalize();
+
+    let tri_ray = Line::new(
+        start,
+        dir
+    );
+
+    let hit_tri = triangle.intersect(&tri_ray);
+    println!("Intersection of second ray and triangle: {:?}", hit_tri.hit);
+
+    let start = Vector::new(0.0, 0.0, -1.0);
+    let end = Vector::new(0.0, 0.0, 1.0);
+    let mut dir = end - start;
+    dir.normalize();
+
+    let tri_ray = Line::new(
+        start,
+        dir
+    );
+
+    let hit_tri = triangle.intersect(&tri_ray);
+    println!("Intersection of third ray and triangle: {:?}", hit_tri.hit);
 }
 
 fn main() {

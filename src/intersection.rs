@@ -51,7 +51,7 @@ impl Intersection for Sphere {
         let thc = (r2 - d2).sqrt();
         let mut t0 = tca - thc;
         let mut t1 = tca + thc;
-        println!("t0: {}, t1: {}", t0, t1);
+        //println!("t0: {}, t1: {}", t0, t1);
         if t0 > t1 {
             std::mem::swap(&mut t0, &mut t1);
         }
@@ -72,31 +72,31 @@ impl Intersection for Sphere {
 impl Intersection for Triangle {
     fn intersect(&self, ray: &Line) -> RayCastHit {
         // MOLLER-TRUMBORE METHOD
-        println!("ray: {}", ray.to_string());
+        //println!("ray: {}", ray.to_string());
         let v0v1 = self.vertices[1] - self.vertices[0];
-        println!("v0v1: {}", v0v1.to_string());
+        //println!("v0v1: {}", v0v1.to_string());
         let v0v2 = self.vertices[2] - self.vertices[0];
-        println!("v0v2: {}", v0v2.to_string());
+        //println!("v0v2: {}", v0v2.to_string());
         let pvec = ray.direction.cross(&v0v2);
-        println!("pvec: {}", pvec.to_string());
+        //println!("pvec: {}", pvec.to_string());
         let det = v0v1.dot(&pvec);
-        println!("det: {}", det);
+        //println!("det: {}", det);
         if det.abs() < 0.0001 {
-            println!("det is zero");
+            //println!("det is zero");
             return RayCastHit::new(None);
         }
         let inv_det = 1.0 / det;
         let tvec = ray.point - self.vertices[0];
         let u = tvec.dot(&pvec) * inv_det;
         if u < 0.0 || u > 1.0 {
-            println!("u is out of bounds");
+            //println!("u is out of bounds");
             return RayCastHit::new(None);
         }
 
         let qvec = tvec.cross(&v0v1);
         let v = ray.direction.dot(&qvec) * inv_det;
         if v < 0.0 || u + v > 1.0 {
-            println!("v is out of bounds");
+            //println!("v is out of bounds");
             return RayCastHit::new(None);
         }
 
@@ -106,7 +106,7 @@ impl Intersection for Triangle {
             let angle = ray.direction.angle_radians(&self.normal);
             RayCastHit::new(Some((intersection, angle)))
         } else {
-            println!("t is out of bounds");
+            //println!("t is out of bounds");
             RayCastHit::new(None)
         }
     }
