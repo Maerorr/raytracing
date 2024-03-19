@@ -16,6 +16,7 @@ impl Intersection for Surface {
     // implementation modified from: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
     fn intersect(&self, ray: &Line) -> RayCastHit {
         let surface = self;
+
         let denom = self.normal.dot(&ray.direction);
         if approx_eq!(f64, denom, 0.0, F64Margin::default()) {
             return RayCastHit::new(None);
@@ -64,6 +65,7 @@ impl Intersection for Sphere {
         let intersection = ray.point_on_line(&t0);
         let mut normal = intersection - self.center;
         normal.normalize();
+
         let angle = ray.direction.angle_radians(&normal);
         RayCastHit::new(Some((intersection, angle)))
     }

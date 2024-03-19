@@ -16,6 +16,15 @@ impl Line {
         Line { point, direction }
     }
 
+    pub fn from_points(start: Vector, end: Vector) -> Line {
+        let mut dir = end - start;
+        dir.normalize();
+        Line {
+            point: start,
+            direction: dir,
+        }
+    }
+
     // Returns the point of intersection if they intersect. Otherwise returns None.
     pub fn intersection(&self, other: &Line) -> Option<Vector> {
         let cross_squared = self.direction.cross(&other.direction).length_squared();

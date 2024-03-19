@@ -186,6 +186,39 @@ pub fn zadanie1() {
 
     let hit_tri = triangle.intersect(&tri_ray);
     println!("Intersection of third ray and triangle: {:?}", hit_tri.hit);
+
+    println!("\n############################\n");
+
+    let sphere = Sphere::new(
+        Vector::new(5.0, 0.0, 0.0),
+        5.0,
+        Vector::new(0.0, 0.0, 0.0)
+    );
+
+
+    let ray = Line::from_points(
+        Vector::new(0.0, 20.0, 0.0),
+        Vector::new(0.0, 19.0, 0.0)
+    );
+    println!("ray: {}", ray.to_string());
+    let hit = sphere.intersect(&ray);
+    println!("hit: {:?}", hit.hit);
+    println!("");
+    let ray = Line::from_points(
+        Vector::new(0.0, 20.0, 0.0),
+        Vector::new(0.0, 21.0, 0.0)
+    );
+    println!("ray: {}", ray.to_string());
+    let hit = sphere.intersect(&ray);
+    println!("hit: {:?}", hit.hit);
+
+    let plane = Surface::new_normal(
+        Vector::new(0.0, 20.0, 0.0), 
+        Vector::new(0.0, 0.0, 1.0),
+    );
+
+    let hit = plane.intersect(&ray);
+    println!("\nparallel hit: {:?}", hit.hit);
 }
 
 fn main() {
