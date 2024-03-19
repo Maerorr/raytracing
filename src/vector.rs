@@ -22,8 +22,14 @@ impl Vector {
     }
 
     /// create a vector that points from one point to another
-    pub fn from_points(p1: &Point, p2: &Point) -> Vector {
-        Vector::new(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z)
+    pub fn from_points(start: Vector, end: Vector) -> Vector {
+        let direction = (end - start)._normalize();
+        Vector {
+            x: direction.x,
+            y: direction.y,
+            z: direction.z,
+            w: 1.0,
+        }
     }
 
     /// dot product, multiplication of all components
@@ -72,6 +78,16 @@ impl Vector {
         self.x /= length;
         self.y /= length;
         self.z /= length;
+    }
+
+    pub fn _normalize(&mut self) -> Vector {
+        let length = self.length();
+        Vector {
+            x: self.x / length,
+            y: self.y / length,
+            z: self.z / length,
+            w: self.w,
+        }
     }
 
     // rotates self by a given quaternion
@@ -275,10 +291,11 @@ mod tests {
 
     #[test]
     fn from_points_test() {
-        let p1 = Point::new(1.0, 2.0, 3.0);
-        let p2 = Point::new(4.0, 5.0, 6.0);
-        let v1 = Vector::from_points(&p1, &p2);
-        let v2 = Vector::new(3.0, 3.0, 3.0);
+        let start = Vector::new(0.0, 0.0, 0.0);
+        let end = Vector::new(0.0, 0.0, 1.0);
+        let v1 = Vector::from_points(start, end);
+        // normalized result
+        let v2 = Vector::new(0.0, 0.0, 1.0);
         assert_eq!(v1, v2);
     }
 

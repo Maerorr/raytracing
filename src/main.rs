@@ -282,8 +282,8 @@ fn main() {
 
 
     let sphere = Sphere::new(
-        Vector::new(190.0, 0.0, 0.0),
-        20.0,
+        Vector::new(-150.0, 0.0, 0.0),
+        25.0,
         Vector::new(255.0, 0.0, 0.0)
     );
 
@@ -307,25 +307,21 @@ fn main() {
 
     scene.add_primitive(Box::new(triangle));
 
-    let mut hits: Vec<RayCastHit> = Vec::new();
-
-    let mut q: Quaternion = Quaternion::identity();
-
-    let camera_pos = Vector::new(0.0, 0.0, -100.0);
+    let camera_pos = Vector::new(0.0, 0.0, 5.0);
 
     let mut camera = Camera::new(
         camera_pos.clone(),
         Vector::new(0.0, 0.0, -1.0),
         RENDER_WIDTH, RENDER_HEIGHT,
-        Vector::new(0.0, 1.0, 0.0),
-        Vector::new(1.0, 0.0, 0.0));
+        Vector::new(0.0, 1.0, 0.0)
+    );
 
     camera.perspective = true;
 
     let cube_color: Color = Color::new(255, 0, 0, 255);
 
     let mut img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
-    hits = camera.render_scene(&scene);
+    let hits = camera.render_scene(&scene);
 
     for hit in hits.iter() {
         if hit.is_some() {
