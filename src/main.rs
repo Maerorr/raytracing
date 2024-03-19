@@ -9,7 +9,7 @@ use triangle::Triangle;
 use vector::*;
 use point::*;
 use mat4::*;
-use crate::intersection::Intersection;
+use crate::intersection::IntersectionPrimitive;
 use crate::line::Line;
 use crate::math::{as_degrees, as_radians};
 use crate::quaternion::Quaternion;
@@ -37,7 +37,7 @@ mod scene;
 mod triangle;
 
 const RENDER_WIDTH: i32 = 512;
-const RENDER_HEIGHT: i32 = 256;
+const RENDER_HEIGHT: i32 = 512;
 
 const OFFSET: (i32, i32) = (RENDER_WIDTH / 2, RENDER_HEIGHT / 2);
 
@@ -222,15 +222,13 @@ pub fn zadanie1() {
 }
 
 fn main() {
-    zadanie1();
-    return;
     let mut scene = Scene::new();
 
     let mut q = Quaternion::identity();
 
-    q.rotate(as_radians(15.0), Vector::new(1.0, 0.0, 0.0));
-    q.rotate(as_radians(15.0), Vector::new(0.0, 1.0, 0.0));
-    q.rotate(as_radians(15.0), Vector::new(0.0, 0.0, 1.0));
+    // q.rotate(as_radians(15.0), Vector::new(1.0, 0.0, 0.0));
+    // q.rotate(as_radians(15.0), Vector::new(0.0, 1.0, 0.0));
+    q.rotate(as_radians(45.0), Vector::new(0.0, 0.0, 1.0));
 
     let mut front = Surface::new_vw(
         Vector::new(0.0, 0.0, 15.0),
@@ -274,19 +272,14 @@ fn main() {
         Some((-15.0, 15.0)),
         Some((-15.0, 15.0)),
         Vector::new(0.0, 1.0, 0.0));
+    let mut surfaces = vec![&mut front, &mut back, &mut left, &mut right, &mut top, &mut bottom];
 
-    
-    scene.add_surface(front);
-    scene.add_surface(back);
-    scene.add_surface(left);
-    scene.add_surface(right);
-    scene.add_surface(top);
-    scene.add_surface(bottom);
-
-    for surface in scene.surfaces.iter_mut() {
+    for surface in surfaces.iter_mut() {
         surface.rotate(&q);
-        surface.translate(&Vector::new(-150.0, 00.0, 0.0));
+        surface.translate(&Vector::new(-100.0, 0.0, 0.0));
+        scene.add_primitive(Box::new(surface.clone()));
     }
+
 
     let sphere = Sphere::new(
         Vector::new(190.0, 0.0, 0.0),
@@ -294,7 +287,7 @@ fn main() {
         Vector::new(255.0, 0.0, 0.0)
     );
 
-    scene.add_sphere(sphere);
+    scene.add_primitive(Box::new(sphere));
 
     let triangle = Triangle::new(
         [Vector::new(-100.0, 0.0, 0.0),
@@ -303,9 +296,7 @@ fn main() {
         Vector::new(0.0, 255.0, 0.0)
     );
 
-    //println!("{:?}", triangle.normal);
-
-    scene.add_triangle(triangle);
+    scene.add_primitive(Box::new(triangle));
 
     let triangle = Triangle::new(
         [Vector::new(100.0, 0.0, 0.0),
@@ -314,9 +305,7 @@ fn main() {
         Vector::new(0.0, 255.0, 0.0)
     );
 
-    //println!("{:?}", triangle.normal);
-
-    scene.add_triangle(triangle);
+    scene.add_primitive(Box::new(triangle));
 
     let mut hits: Vec<RayCastHit> = Vec::new();
 

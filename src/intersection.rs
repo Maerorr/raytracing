@@ -8,11 +8,11 @@ use crate::{
     triangle::Triangle,
 };
 
-pub trait Intersection {
+pub trait IntersectionPrimitive {
     fn intersect(&self, ray: &Line) -> RayCastHit;
 }
 
-impl Intersection for Surface {
+impl IntersectionPrimitive for Surface {
     // implementation modified from: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
     fn intersect(&self, ray: &Line) -> RayCastHit {
         let surface = self;
@@ -28,14 +28,19 @@ impl Intersection for Surface {
         let angle = ray.direction.angle_radians(&self.normal);
 
         if t > 0.0 {
+            let ts = self.get_t_s_from_point(&intersection);
+            if self.point_on_surface(&ts.0, &ts.1).is_none() {
+                return RayCastHit::new(None);
+            }
             RayCastHit::new(Some((intersection, angle)))
+            
         } else {
             RayCastHit::new(None)
         }
     }
 }
 
-impl Intersection for Sphere {
+impl IntersectionPrimitive for Sphere {
     // geometric solution from: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
     fn intersect(&self, ray: &Line) -> RayCastHit {
         let r2 = self.radius * self.radius;
@@ -71,7 +76,7 @@ impl Intersection for Sphere {
     }
 }
 
-impl Intersection for Triangle {
+impl IntersectionPrimitive for Triangle {
     fn intersect(&self, ray: &Line) -> RayCastHit {
         // MOLLER-TRUMBORE METHOD
         //println!("ray: {}", ray.to_string());
@@ -84,7 +89,6 @@ impl Intersection for Triangle {
         let det = v0v1.dot(&pvec);
         //println!("det: {}", det);
         if det.abs() < 0.0001 {
-            //println!("det is zero");
             return RayCastHit::new(None);
         }
         let inv_det = 1.0 / det;

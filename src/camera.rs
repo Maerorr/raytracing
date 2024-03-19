@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use crate::intersection::Intersection;
+use crate::intersection::IntersectionPrimitive;
 use crate::line::Line;
 use crate::object::Object;
 use crate::quaternion::Quaternion;
@@ -37,25 +37,9 @@ impl Camera {
             debug: String::new(),
             backface_culling: false,
             perspective: false,
-            pinhole_distance: 128.0,
+            pinhole_distance: 120.0,
         }
     }
-
-    // pub fn set_perspective(&mut self, fov: f64, far: f64, near: f64) {
-    //     self.perspective = true;
-    //     // create projection matrix
-    //     let scale = 1.0 / (fov * 0.5 * PI / 180.0).tan();
-    //     let mut m = Mat4::identity();
-    //     m.m[0][0] = scale;
-    //     m.m[1][1] = scale;
-    //     m.m[2][2] = -far / (far - near);
-    //     m.m[3][2] = -far * near / (far - near);
-    //     m.m[3][2] = -1.0;
-    //     m.m[3][3] = 0.0;
-    //     //m.transpose();
-    //     println!("Projection matrix: \n{}", m.to_string());
-    //     self.projection_matrix = m;
-    // }
 
     pub fn render(&mut self, object: &Object) -> Vec<RayCastHit> {
         // THIS IS JUST TO ROTATE THE CAMERA ONCE PER RENDER WITHOUT IT SPINNING AROUND
@@ -99,57 +83,14 @@ impl Camera {
         right.rotate_by_quaternion(&self.rotation);
         let mut hits: Vec<RayCastHit> = Vec::new();
         if !self.perspective {
-
-            // for tri in &scene.triangles {
-            //     println!("{}", tri.to_string());
-            // }
-
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
                     let mut closest_intersection = RayCastHit::new(None);
                     let mut closest_distance = 0.0;
     
                     l.point = point + up * i as f64 + right * j as f64;
-                    for surface in &scene.surfaces {
-                        let mut hit = surface.intersect(&l);
-                        if hit.is_some() {
-                            let from_cam_to_point = hit.unwrap().0 - l.point;
-                
-                            if from_cam_to_point.dot(&l.direction) >= 0.0 {
-                                let intersection = hit.unwrap();
-                                let distance = l.point.distance(&intersection.0);
-                
-                                if closest_intersection.is_none() {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                } else if distance < closest_distance {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                }
-                            }
-                        }
-                    }
-                    for sphere in &scene.spheres {
-                        let mut hit = sphere.intersect(&l);
-                        if hit.is_some() {
-                            let from_cam_to_point = hit.unwrap().0 - l.point;
-                
-                            if from_cam_to_point.dot(&l.direction) >= 0.0 {
-                                let intersection = hit.unwrap();
-                                let distance = l.point.distance(&intersection.0);
-                
-                                if closest_intersection.is_none() {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                } else if distance < closest_distance {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                }
-                            }
-                        }
-                    }
-                    for triangle in &scene.triangles {
-                        let mut hit = triangle.intersect(&l);
+                    for primitive in &scene.primitives {
+                        let hit = primitive.intersect(&l);
                         if hit.is_some() {
                             let from_cam_to_point = hit.unwrap().0 - l.point;
                 
@@ -180,57 +121,14 @@ impl Camera {
                     let mut closest_distance = 0.0;
                     //implement a 'pinhole' camera
                     let front = self.right.cross(&self.up);
-                    //println!("Front: {}", front.to_string());
 
                     let line_point = self.default.0 + up * i as f64 + right * j as f64 + front * -self.pinhole_distance;
-                    //println!("Line point: {}", line_point.to_string());
                     let mut line_dir = (self.default.0) - line_point;
-                    //print!("pinhole point: {}, line point: {}", (self.default.0).to_string(), line_point.to_string());
                     line_dir.normalize();
                     let line = Line::new(line_point, line_dir);
-                    //println!("Line: {}", line.to_string());
-                    //return vec![];
 
-                    for surface in &scene.surfaces {
-                        let hit = surface.intersect(&line);
-                        if hit.is_some() {
-                            let from_cam_to_point = hit.unwrap().0 - line.point;
-                
-                            if from_cam_to_point.dot(&line.direction) >= 0.0 {
-                                let intersection = hit.unwrap();
-                                let distance = line.point.distance(&intersection.0);
-                
-                                if closest_intersection.is_none() {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                } else if distance < closest_distance {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                }
-                            }
-                        }
-                    }
-                    for sphere in &scene.spheres {
-                        let hit = sphere.intersect(&line);
-                        if hit.is_some() {
-                            let from_cam_to_point = hit.unwrap().0 - line.point;
-                
-                            if from_cam_to_point.dot(&line.direction) >= 0.0 {
-                                let intersection = hit.unwrap();
-                                let distance = line.point.distance(&intersection.0);
-                
-                                if closest_intersection.is_none() {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                } else if distance < closest_distance {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_distance = distance;
-                                }
-                            }
-                        }
-                    }
-                    for triangle in &scene.triangles {
-                        let hit = triangle.intersect(&line);
+                    for primitive in &scene.primitives {
+                        let hit = primitive.intersect(&line);
                         if hit.is_some() {
                             let from_cam_to_point = hit.unwrap().0 - line.point;
                 
