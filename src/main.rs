@@ -62,7 +62,7 @@ fn main() {
     camera.add_material(material_blue);
 
     camera.perspective = true;
-    camera.supersampling = true;
+    camera.supersampling = false;
 
     let mut scene = Scene::new();
     let red_sphere = Sphere::new(Vector::new(128.5, 0.0, -200.0), 100.0);
@@ -70,46 +70,5 @@ fn main() {
     scene.add_primitive(Box::new(red_sphere), 0);
     scene.add_primitive(Box::new(blue_sphere), 1);
 
-    //let cube_color: Color = Color::new(255, 0, 0, 255);
-
-    //let mut img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
-    camera.render_scene(&scene, "output_supersampling.png");
-
-    // for hit in hits.iter() {
-    //     if hit.is_some() {
-    //         let color_value = {
-    //             let angle_cos = hit.angle().cos();
-    //             if angle_cos >= 0.0 {
-    //                 angle_cos.sqrt()
-    //             } else {
-    //                 angle_cos.abs().sqrt()
-    //             }
-    //         };
-
-    //         let color = Color::new(
-    //             ((color_value) * cube_color.r as f64) as u8,
-    //             ((color_value) * cube_color.g as f64) as u8,
-    //             ((color_value) * cube_color.b as f64) as u8,
-    //             255);
-    //         let (i, mut j) = hit.pos_on_screen;
-    //         j = -j;
-
-    //         img.put_pixel((i + OFFSET.0) as u32, (j + OFFSET.1) as u32, image::Rgba([color.r, color.g, color.b, color.a]));
-
-    //     }
-    // }
-
-    // if camera.perspective {
-    //     // flip img vertically and horizontally
-    //     let mut flipped_img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
-    //     for i in 0..img.width() {
-    //         for j in 0..img.height() {
-    //             let pixel = img.get_pixel(i as u32, j as u32);
-    //             flipped_img.put_pixel((img.width() - i - 1) as u32, (img.height() - j - 1) as u32, *pixel);
-    //         }
-    //     }
-    //     flipped_img.save("outputflip.png").unwrap();
-    // } else {
-    //     img.save("output.png").unwrap();
-    // }   
+    camera.render_scene(&scene, "output"); 
 }

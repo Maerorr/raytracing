@@ -65,19 +65,13 @@ impl Buffer {
     pub fn save(&self, path: &str) {
         let mut img = image::ImageBuffer::new(self.width, self.height);
         for (x, y, pixel) in img.enumerate_pixels_mut() {
-            if x == 0 && y == 1 {
-                *pixel = image::Rgb([255, 255, 255]);
-            } else {
-                // let color = self.data[(x + y * self.height) as usize].to_u8();
-                let color = self.data[(x + y * self.height) as usize].to_u8();
-                *pixel = image::Rgb([color.0, color.1, color.2]);
-            }
-            
+            let color = self.data[(x + y * self.height) as usize].to_u8();
+            *pixel = image::Rgb([color.0, color.1, color.2]);
         }
         img.save(path).unwrap();
     }
 
-    pub fn into_vec(&self, debug_z_buf: bool) -> Vec<u8> {
+    pub fn into_vec(&self) -> Vec<u8> {
         let mut vec = Vec::new();
     
         for color in self.data.iter() {
