@@ -1,7 +1,7 @@
 use std::ops;
 use float_cmp::{approx_eq, F64Margin};
-use crate::mat4::Mat4;
-use crate::vector::Vector;
+
+use super::{Mat4, Vector};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Quaternion {
@@ -260,9 +260,7 @@ impl PartialEq for Quaternion {
 
 #[cfg(test)]
 mod test {
-    use crate::mat4::*;
-    use crate::math::as_radians;
-    use crate::vector::*;
+    use crate::math::{as_radians, Mat4, Vector};
     use super::*;
 
     #[test]

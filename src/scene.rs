@@ -1,22 +1,20 @@
-use crate::{intersection::IntersectionPrimitive, sphere::Sphere, surface::Surface, triangle::Triangle};
+use crate::math::intersection::IntersectionPrimitive;
 
 pub struct Scene {
-    // pub surfaces: Vec<Surface>,
-    // pub spheres: Vec<Sphere>,
-    // pub triangles: Vec<Triangle>,
-    //pub lights: Vec<Light>,
-
     pub primitives: Vec<Box<dyn IntersectionPrimitive>>,
+    pub material_index: Vec<usize>,
 }
 
 impl Scene {
     pub fn new() -> Scene {
         Scene {
             primitives: Vec::new(),
+            material_index: Vec::new(),
         }
     }
 
-    pub fn add_primitive(&mut self, primitive: Box<dyn IntersectionPrimitive>) {
+    pub fn add_primitive(&mut self, primitive: Box<dyn IntersectionPrimitive>, material_idx: usize) {
         self.primitives.push(primitive);
+        self.material_index.push(material_idx);
     }
 }

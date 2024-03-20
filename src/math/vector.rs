@@ -1,10 +1,7 @@
 use std::{ops};
 // used for comparing floats
 use float_cmp::{approx_eq, F64Margin};
-use crate::mat4::Mat4;
-
-use crate::point::*;
-use crate::quaternion::Quaternion;
+use super::{Mat4, Quaternion};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector {
@@ -370,7 +367,6 @@ mod tests {
 
     #[test]
     fn matrix_mul_test() {
-        use crate::mat4::*;
         let mut vec = Vector::new(1.0, 2.0, 3.0);
         let mut mat = Mat4::identity();
         mat.scale(Vector::new(2.0, 2.0, 2.0));
@@ -385,7 +381,6 @@ mod tests {
 
     #[test]
     fn quaternion_rotation_test() {
-        use crate::quaternion::*;
         let mut vec = Vector::new(1.0, 0.0, 0.0);
         let mut quat = Quaternion::identity();
         quat.rotate(as_radians(90.0), Vector::new(0.0, 1.0, 0.0));

@@ -1,8 +1,9 @@
 use std::{ops};
-use crate::{vector::*, math::*};
 
 // used for partial_eq
 use float_cmp::{approx_eq, F64Margin};
+
+use super::Vector;
 
 // 4x4 matrix of f64, row-major
 #[derive(Debug, Clone, Copy)]
@@ -379,6 +380,8 @@ impl PartialEq for Mat4 {
 
 #[cfg(test)]
 mod test {
+    use crate::math::as_radians;
+
     use super::*;
 
     #[test]
@@ -427,7 +430,6 @@ mod test {
 
     #[test]
     fn test_translate() {
-        use crate::vector::*;
         let mut m = Mat4::identity();
         let mut vec = Vector::new(1.0, 1.0, 1.0);
         m.translate(Vector::new(1.0, 2.0, 3.0));

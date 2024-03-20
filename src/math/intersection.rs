@@ -1,12 +1,9 @@
 use float_cmp::{approx_eq, F64Margin};
 
-use crate::{
-    line::Line,
-    raycasthit::RayCastHit,
-    sphere::Sphere,
-    surface::{self, Surface},
-    triangle::Triangle,
-};
+use crate::{geometry::{Line, Sphere, Surface, Triangle}};
+
+use super::RayCastHit;
+
 
 pub trait IntersectionPrimitive {
     fn intersect(&self, ray: &Line) -> RayCastHit;

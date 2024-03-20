@@ -1,6 +1,4 @@
-use crate::point::Point;
-use crate::quaternion::Quaternion;
-use crate::vector::Vector;
+use crate::math::{Vector, Quaternion};
 
 // Surface is defined by a point and a normal vector
 #[derive(Debug, Clone, Copy)]
@@ -27,8 +25,8 @@ impl Surface {
     }
 
     // return the distance from the surface to a point
-    pub fn distance(&self, point: &Point) -> f64 {
-        let v = point.to_vector() - self.point;
+    pub fn distance(&self, point: &Vector) -> f64 {
+        let v = *point - self.point;
         v.dot(&self.normal)
     }
 
@@ -40,11 +38,12 @@ impl Surface {
     }
 
     // return the point on the surface closest to the given point
-    pub fn closest_point(&self, point: &Point) -> Point {
-        let v = point.to_vector() - self.point;
+    pub fn closest_point(&self, point: &Vector) -> Vector {
+        let v = *point - self.point;
         let d = v.dot(&self.normal);
         let v = self.normal * d;
-        Point::from_vector(&(point.to_vector() - v))
+        //Point::from_vector(&(point.to_vector() - v))
+        *point - v
     }
 
     // returns expression Q + tv + sw. Returns None if surface was not defined with v and w. Or if t or s are outside the bounds of the surface.

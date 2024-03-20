@@ -1,14 +1,8 @@
-use std::f64::consts::PI;
-
-use crate::intersection::IntersectionPrimitive;
-use crate::line::Line;
-use crate::object::Object;
-use crate::quaternion::Quaternion;
-use crate::raycasthit::RayCastHit;
+use crate::buffer::Buffer;
+use crate::geometry::Line;
+use crate::material::Material;
+use crate::math::{RayCastHit, Vector};
 use crate::scene::Scene;
-use crate::triangle::{self, Triangle};
-use crate::{surface, Mat4};
-use crate::vector::Vector;
 
 pub struct Camera {
     pub position: Vector,
@@ -21,6 +15,8 @@ pub struct Camera {
     pub backface_culling: bool,
     pub perspective: bool,
     pub pinhole_distance: f64,
+    pub materials: Vec<Material>,
+    pub buffer: Buffer,
 }
 
 impl Camera {
@@ -36,8 +32,15 @@ impl Camera {
             debug: String::new(),
             backface_culling: true,
             perspective: false,
-            pinhole_distance: 120.0,
+            pinhole_distance: 250.0,
+            materials: Vec::new(),
+            buffer: Buffer::new(width as u32, height as u32),
         }
+    }
+
+    pub fn add_material(&mut self, material: Material) -> usize {
+        self.materials.push(material);
+        self.materials.len() - 1
     }
 
     // OLD RENDER FUNCTION
@@ -71,20 +74,22 @@ impl Camera {
     //     hits
     // }
 
-    pub fn render_scene(&mut self, scene: &Scene) -> Vec<RayCastHit> {
-        let mut new_up = self.right.cross(&self.forward);
+    pub fn render_scene(&mut self, scene: &Scene, path: &str) {
+        let new_up = self.right.cross(&self.forward);
         let mut ray = Line::new(self.position, self.forward);
-        println!("new up: {:?}", new_up);
 
-        let mut hits: Vec<RayCastHit> = Vec::new();
+        let mut hits: Vec<(RayCastHit, usize)> = Vec::new();
+        self.buffer.colorful_checkerboard();
+        // RAYCASTING PHASE
         if !self.perspective {
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
                     let mut closest_intersection = RayCastHit::new(None);
                     let mut closest_distance = 0.0;
+                    let mut closest_material_idx = 0;
 
                     ray.point = self.position + new_up * i as f64 + self.right * j as f64;
-                    for primitive in &scene.primitives {
+                    for (i, primitive) in scene.primitives.iter().enumerate() {
                         let hit = primitive.intersect(&ray);
                         if hit.is_some() {
                             let from_cam_to_point = hit.unwrap().0 - ray.point;
@@ -95,9 +100,11 @@ impl Camera {
                 
                                 if closest_intersection.is_none() {
                                     closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_material_idx = scene.material_index[i];
                                     closest_distance = distance;
                                 } else if distance < closest_distance {
                                     closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_material_idx = scene.material_index[i];
                                     closest_distance = distance;
                                 }
                             }
@@ -105,23 +112,22 @@ impl Camera {
                     }
     
                     closest_intersection.pos_on_screen = (j, i);
-                    hits.push(closest_intersection);
+                    hits.push((closest_intersection, closest_material_idx));
                 }
             }
         } else {
+            let pinhole_position = self.position - self.forward * self.pinhole_distance;
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
                     let mut closest_intersection = RayCastHit::new(None);
                     let mut closest_distance = 0.0;
+                    let mut closest_material_idx = 0;
                     //'pinhole' camera rendering
+                    
+                    ray.point = self.position + new_up * i as f64 + self.right * j as f64;
+                    ray.direction = Vector::from_points(pinhole_position, ray.point);
 
-                    ray.point = self.position - self.forward * self.pinhole_distance;
-                    ray.direction = Vector::from_points(ray.point, self.position + new_up * i as f64 + self.right * j as f64);
-
-                    // let line_point = self.default.0 + up * i as f64 + right * j as f64 + front * -self.pinhole_distance;
-                    // let mut line_dir = (self.default.0) - line_point;
-
-                    for primitive in &scene.primitives {
+                    for (i, primitive) in scene.primitives.iter().enumerate() {
                         let hit = primitive.intersect(&ray);
                         if hit.is_some() {
                             let from_cam_to_point = hit.unwrap().0 - ray.point;
@@ -132,9 +138,11 @@ impl Camera {
                 
                                 if closest_intersection.is_none() {
                                     closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_material_idx = scene.material_index[i];
                                     closest_distance = distance;
                                 } else if distance < closest_distance {
                                     closest_intersection = RayCastHit::new(Some(intersection));
+                                    closest_material_idx = scene.material_index[i];
                                     closest_distance = distance;
                                 }
                             }
@@ -142,12 +150,24 @@ impl Camera {
                     }
 
                     closest_intersection.pos_on_screen = (j, i);
-                    hits.push(closest_intersection);
+                    hits.push((closest_intersection, closest_material_idx));
                 }
             }
         }
         
-        hits
+        // DRAWING PHASE
+
+        for (hit, material_idx) in hits.iter() {
+            if hit.is_some() {
+                let color = self.materials[*material_idx].color;
+                let (i, mut j) = hit.pos_on_screen;
+                j = -j;
+
+                self.buffer.set_pixel((i + self.render_width / 2) as u32, (j + self.render_height / 2) as u32, color);
+            }
+        }
+
+        self.buffer.save(path);
     }
 
     pub fn set_camera_position(&mut self, v: &Vector) {

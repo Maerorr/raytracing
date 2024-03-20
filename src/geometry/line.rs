@@ -1,9 +1,9 @@
 use float_cmp::{approx_eq, F64Margin};
-use crate::object::Object;
-use crate::point::Point;
-use crate::raycasthit::RayCastHit;
-use crate::surface::Surface;
-use crate::vector::Vector;
+
+
+use crate::math::{RayCastHit, Vector};
+
+use super::Surface;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Line {
@@ -84,42 +84,42 @@ impl Line {
         }
     }
 
-    pub fn intersection_object(&self, obj: &Object, cam_pos: &Vector, bfc: &bool) -> RayCastHit {
-        let mut closest_intersection: RayCastHit = RayCastHit::new(None);
-        let mut closest_distance: f64 = 0.0;
+    // pub fn intersection_object(&self, obj: &Object, cam_pos: &Vector, bfc: &bool) -> RayCastHit {
+    //     let mut closest_intersection: RayCastHit = RayCastHit::new(None);
+    //     let mut closest_distance: f64 = 0.0;
 
-        for surface in &obj.surfaces {
-            // intersection with each surface
-            let intersection = self.intersection_surface(&surface);
-            // if we have a hit
-            if intersection.is_some() {
+    //     for surface in &obj.surfaces {
+    //         // intersection with each surface
+    //         let intersection = self.intersection_surface(&surface);
+    //         // if we have a hit
+    //         if intersection.is_some() {
 
-                let from_cam_to_point = intersection.unwrap().0 - *cam_pos;
+    //             let from_cam_to_point = intersection.unwrap().0 - *cam_pos;
 
-                if from_cam_to_point.dot(&self.direction) >= 0.0 {
-                    let intersection = intersection.unwrap();
-                    let distance = (*cam_pos).distance(&intersection.0);
+    //             if from_cam_to_point.dot(&self.direction) >= 0.0 {
+    //                 let intersection = intersection.unwrap();
+    //                 let distance = (*cam_pos).distance(&intersection.0);
 
-                    if closest_intersection.is_none() {
-                        closest_intersection = RayCastHit::new(Some(intersection));
-                        closest_distance = distance;
-                    } else if distance < closest_distance {
-                        closest_intersection = RayCastHit::new(Some(intersection));
-                        closest_distance = distance;
-                    }
-                }
-            }
-        }
-        if closest_intersection.is_some() {
-            if *bfc {
-                if closest_intersection.angle().cos() < 0.0 {
-                    //println!("camera pos: {}, hit: {}, angle: {}", cam_pos.to_string(), closest_intersection.unwrap().0.to_string(), closest_intersection.angle());
-                    closest_intersection = RayCastHit::new(None);
-                }
-            }
-        }
-        closest_intersection
-    }
+    //                 if closest_intersection.is_none() {
+    //                     closest_intersection = RayCastHit::new(Some(intersection));
+    //                     closest_distance = distance;
+    //                 } else if distance < closest_distance {
+    //                     closest_intersection = RayCastHit::new(Some(intersection));
+    //                     closest_distance = distance;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     if closest_intersection.is_some() {
+    //         if *bfc {
+    //             if closest_intersection.angle().cos() < 0.0 {
+    //                 //println!("camera pos: {}, hit: {}, angle: {}", cam_pos.to_string(), closest_intersection.unwrap().0.to_string(), closest_intersection.angle());
+    //                 closest_intersection = RayCastHit::new(None);
+    //             }
+    //         }
+    //     }
+    //     closest_intersection
+    // }
 
     pub fn to_string(&self) -> String {
         format!("Point: {}, Direction: {}", self.point.to_string(), self.direction.to_string())
