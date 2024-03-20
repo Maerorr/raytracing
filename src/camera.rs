@@ -93,9 +93,10 @@ impl Camera {
         let new_up = self.right.cross(&self.forward);
         let mut ray = Line::new(self.position, self.forward);
 
-        let mut hits: Vec<(RayCastHit, usize)> = Vec::new();
         //self.buffer.colorful_checkerboard();
-        // RAYCASTING PHASE
+
+        let time = std::time::Instant::now();
+
         if !self.perspective {
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
@@ -150,7 +151,7 @@ impl Camera {
                 }
             }
         }
-        
+        println!("Rendering took: {}ms", time.elapsed().as_millis());
         self.buffer.save(path_specs.as_str());
     }
 
