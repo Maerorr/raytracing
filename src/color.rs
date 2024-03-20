@@ -19,6 +19,12 @@ impl Color {
             (self.b * 255.0) as u8,
         )
     }
+
+    pub fn blend(&mut self, other: &Color, amount: f32) {
+        self.r = self.r * (1.0 - amount) + other.r * amount;
+        self.g = self.g * (1.0 - amount) + other.g * amount;
+        self.b = self.b * (1.0 - amount) + other.b * amount;
+    }
 }
 
 impl Default for Color {

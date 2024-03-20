@@ -62,17 +62,18 @@ fn main() {
     camera.add_material(material_blue);
 
     camera.perspective = true;
+    camera.supersampling = true;
 
     let mut scene = Scene::new();
-    let red_sphere = Sphere::new(Vector::new(128.0, 0.0, -200.0), 100.0);
-    let blue_sphere = Sphere::new(Vector::new(0.0, 0.0, -100.0), 100.0);
+    let red_sphere = Sphere::new(Vector::new(128.5, 0.0, -200.0), 100.0);
+    let blue_sphere = Sphere::new(Vector::new(0.5, 0.0, -100.0), 100.0);
     scene.add_primitive(Box::new(red_sphere), 0);
     scene.add_primitive(Box::new(blue_sphere), 1);
 
     //let cube_color: Color = Color::new(255, 0, 0, 255);
 
     //let mut img = ImageBuffer::new(RENDER_WIDTH as u32, RENDER_HEIGHT as u32);
-    camera.render_scene(&scene, "output.png");
+    camera.render_scene(&scene, "output_supersampling.png");
 
     // for hit in hits.iter() {
     //     if hit.is_some() {

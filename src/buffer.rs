@@ -44,7 +44,21 @@ impl Buffer {
     pub fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
         if x < self.width && y < self.height {
             let index = (x + (self.height - y - 1) * self.width) as usize;
-            self.data[(x + (self.height - y - 1) * self.width) as usize] = color;
+            self.data[index] = color;
+        }
+    }
+
+    pub fn add_to_pixel(&mut self, x: u32, y: u32, color: Color) {
+        if x < self.width && y < self.height {
+            let index = (x + (self.height - y - 1) * self.width) as usize;
+            self.data[index] += color;
+        }
+    }
+
+    pub fn blend_pixel(&mut self, x: u32, y: u32, color: Color, amount: f32) {
+        if x < self.width && y < self.height {
+            let index = (x + (self.height - y - 1) * self.width) as usize;
+            self.data[index].blend(&color, amount);
         }
     }
 

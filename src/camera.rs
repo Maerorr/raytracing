@@ -1,4 +1,5 @@
 use crate::buffer::Buffer;
+use crate::color::Color;
 use crate::geometry::Line;
 use crate::material::Material;
 use crate::math::{RayCastHit, Vector};
@@ -17,6 +18,7 @@ pub struct Camera {
     pub pinhole_distance: f64,
     pub materials: Vec<Material>,
     pub buffer: Buffer,
+    pub supersampling: bool,
 }
 
 impl Camera {
@@ -35,6 +37,7 @@ impl Camera {
             pinhole_distance: 250.0,
             materials: Vec::new(),
             buffer: Buffer::new(width as u32, height as u32),
+            supersampling: false,
         }
     }
 
@@ -79,7 +82,7 @@ impl Camera {
         let mut ray = Line::new(self.position, self.forward);
 
         let mut hits: Vec<(RayCastHit, usize)> = Vec::new();
-        self.buffer.colorful_checkerboard();
+        //self.buffer.colorful_checkerboard();
         // RAYCASTING PHASE
         if !self.perspective {
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
@@ -122,52 +125,108 @@ impl Camera {
                     let mut closest_intersection = RayCastHit::new(None);
                     let mut closest_distance = 0.0;
                     let mut closest_material_idx = 0;
+                    let mut hit_colors: Vec<Color> = Vec::new();
                     //'pinhole' camera rendering
                     
                     ray.point = self.position + new_up * i as f64 + self.right * j as f64;
                     ray.direction = Vector::from_points(pinhole_position, ray.point);
+                    if self.supersampling {
+                        let mut count = 0;
+                        for x in -1..2 {
+                            for y in -1..2 {
+                                let mut ss_closest_intersection = RayCastHit::new(None);
+                                let mut ss_closest_distance = 0.0;
+                                let mut ss_closest_material_idx = 0;
 
-                    for (i, primitive) in scene.primitives.iter().enumerate() {
-                        let hit = primitive.intersect(&ray);
-                        if hit.is_some() {
-                            let from_cam_to_point = hit.unwrap().0 - ray.point;
-                
-                            if from_cam_to_point.dot(&ray.direction) >= 0.0 {
-                                let intersection = hit.unwrap();
-                                let distance = ray.point.distance(&intersection.0);
-                
-                                if closest_intersection.is_none() {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_material_idx = scene.material_index[i];
-                                    closest_distance = distance;
-                                } else if distance < closest_distance {
-                                    closest_intersection = RayCastHit::new(Some(intersection));
-                                    closest_material_idx = scene.material_index[i];
-                                    closest_distance = distance;
+                                let mut ray = Line::new(self.position, self.forward);
+                                ray.point = self.position + new_up * (i as f64 + 0.25 * x as f64) + self.right * (j as f64 + 0.25 * y as f64);
+                                ray.direction = Vector::from_points(pinhole_position, ray.point);
+                                for (idx, primitive) in scene.primitives.iter().enumerate() {
+                                    let hit = primitive.intersect(&ray);
+                                    if hit.is_some() {
+                                        let from_cam_to_point = hit.unwrap().0 - ray.point;
+                            
+                                        if from_cam_to_point.dot(&ray.direction) >= 0.0 {
+                                            let intersection = hit.unwrap();
+                                            let distance = ray.point.distance(&intersection.0);
+                            
+                                            if ss_closest_intersection.is_none() || distance < ss_closest_distance {
+                                                ss_closest_intersection = RayCastHit::new(Some(intersection));
+                                                ss_closest_material_idx = scene.material_index[idx];
+                                                ss_closest_distance = distance;
+                                            }
+                                        }
+                                    }
+                                }
+                                if ss_closest_intersection.is_some() {
+                                    hit_colors.push(self.materials[ss_closest_material_idx].color);
+                                    count += 1;
                                 }
                             }
                         }
+                        let colors_len = hit_colors.len();
+                        let mut pixel_color = Color::default();
+                        for color in hit_colors {
+                            pixel_color += color / colors_len as f32;
+                        }
+                        match count {
+                            0 => {},
+                            1..=8 => self.blend_pixel_ji(j, i, pixel_color, count as f32 / 8f32),
+                            9 => self.set_pixel_ji(j, i, pixel_color),
+                            _ => {println!("how??? {}", count)},
+                        }
+                    } else {
+                        for (idx, primitive) in scene.primitives.iter().enumerate() {
+                            let hit = primitive.intersect(&ray);
+                            if hit.is_some() {
+                                let from_cam_to_point = hit.unwrap().0 - ray.point;
+                    
+                                if from_cam_to_point.dot(&ray.direction) >= 0.0 {
+                                    let intersection = hit.unwrap();
+                                    let distance = ray.point.distance(&intersection.0);
+                    
+                                    if closest_intersection.is_none() || distance < closest_distance{
+                                        closest_intersection = RayCastHit::new(Some(intersection));
+                                        closest_material_idx = scene.material_index[idx];
+                                        closest_distance = distance;
+                                    }
+                                }
+                                self.set_pixel_ji(j, i ,self.materials[closest_material_idx].color);
+                            }
+                        }
+    
+                        closest_intersection.pos_on_screen = (j, i);
+                        hits.push((closest_intersection, closest_material_idx));
                     }
-
-                    closest_intersection.pos_on_screen = (j, i);
-                    hits.push((closest_intersection, closest_material_idx));
                 }
             }
         }
         
         // DRAWING PHASE
 
-        for (hit, material_idx) in hits.iter() {
-            if hit.is_some() {
-                let color = self.materials[*material_idx].color;
-                let (i, mut j) = hit.pos_on_screen;
-                j = -j;
+        // for (hit, material_idx) in hits.iter() {
+        //     if hit.is_some() {
+        //         let color = self.materials[*material_idx].color;
+        //         let (i, mut j) = hit.pos_on_screen;
+        //         j = -j;
 
-                self.buffer.set_pixel((i + self.render_width / 2) as u32, (j + self.render_height / 2) as u32, color);
-            }
-        }
+        //         self.buffer.set_pixel((i + self.render_width / 2) as u32, (j + self.render_height / 2) as u32, color);
+        //     }
+        // }
 
         self.buffer.save(path);
+    }
+
+    pub fn add_pixel_ji(&mut self, j: i32, i: i32, color: Color) {
+        self.buffer.add_to_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color);
+    }
+
+    pub fn set_pixel_ji(&mut self, j: i32, i: i32, color: Color) {
+        self.buffer.set_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color);
+    }
+
+    pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f32) {
+        self.buffer.blend_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color, amount);
     }
 
     pub fn set_camera_position(&mut self, v: &Vector) {
