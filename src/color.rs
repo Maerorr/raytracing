@@ -13,6 +13,9 @@ impl Color {
     }
 
     pub fn to_u8(&self) -> (u8, u8, u8) {
+        // if self.r > 1.0 || self.g > 1.0 || self.b > 1.0 || self.r < 0.0 || self.g < 0.0 || self.b < 0.0 {
+        //     panic!("Color values must be between 0.0 and 1.0");
+        // }
         let r = (self.r * 255.0).clamp(0.0, 255.0) as u8;
         let g = (self.g * 255.0).clamp(0.0, 255.0) as u8;
         let b = (self.b * 255.0).clamp(0.0, 255.0) as u8;

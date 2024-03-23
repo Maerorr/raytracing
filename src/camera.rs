@@ -82,7 +82,7 @@ impl Camera {
         let new_up = self.right.cross(&self.forward);
         let mut ray = Line::new(self.position, self.forward);
 
-        //self.buffer.colorful_checkerboard();
+        self.buffer.clear_color(Color::new(0.124, 0.86, 0.42));
 
         let time = std::time::Instant::now();
 
@@ -189,8 +189,21 @@ impl Camera {
                 for color in hit_colors.iter() {
                     average_color += *color;
                 }
-                average_color /= 9.0;
-                self.set_pixel_ji(j, i, average_color);
+                let count = hit_colors.len() + 1;
+                //average_color /= count as f32;
+                //println!("avg color: {:?}", average_color);
+                // self.set_pixel_ji(j, i, average_color);
+                
+                match count {
+                    0 => {},
+                    1..=8 => {
+                        let bg_color = self.buffer.clear_color;
+                        let color = average_color + bg_color * (9 - count) as f32;
+                        self.set_pixel_ji(j, i, color / 9.0);
+                    }
+                    9 => self.set_pixel_ji(j, i, average_color / count as f32),
+                    _ => {println!("how??? {}", count)},
+                }
             }
         }
 
@@ -208,6 +221,10 @@ impl Camera {
 
     pub fn set_pixel_ji(&mut self, j: i32, i: i32, color: Color) {
         self.buffer.set_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color);
+    }
+
+    pub fn get_pixel_ji(&self, j: i32, i: i32) -> Color {
+        self.buffer.get_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32)
     }
 
     pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f32) {

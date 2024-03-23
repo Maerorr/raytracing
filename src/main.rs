@@ -67,8 +67,8 @@ fn main() {
     camera.pinhole_distance = 320.0;
 
     let mut scene = Scene::new();
-    let red_sphere = Sphere::new(Vector::new(128.0, 128.0, -300.0), 100.0);
-    let blue_sphere = Sphere::new(Vector::new(0.0, -128.0, -100.0), 100.0);
+    let red_sphere = Sphere::new(Vector::new(128.0, 0.0, -300.0), 100.0);
+    let blue_sphere = Sphere::new(Vector::new(0.0, 0.0, -100.0), 100.0);
     scene.add_primitive(Box::new(red_sphere), 0);
     scene.add_primitive(Box::new(blue_sphere), 1);
 

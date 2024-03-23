@@ -8,6 +8,8 @@ pub struct Buffer {
     pub width: u32,
     pub height: u32,
     pub data: Vec<Color>, // RGB
+
+    pub clear_color: Color,
     //pub z_buffer: Vec<f32>,
 }
 
@@ -17,10 +19,12 @@ impl Buffer {
             width,
             height,
             data: vec![Color::default(); (width * height) as usize],
+            clear_color: Color::default(),
         }
     }
 
     pub fn clear_color(&mut self, color: Color) {
+        self.clear_color = color;
         for pixel in self.data.iter_mut() {
             *pixel = color;
         }
