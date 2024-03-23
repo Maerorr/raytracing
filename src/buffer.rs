@@ -1,3 +1,5 @@
+use core::panic;
+
 use raylib::color;
 
 use crate::color::Color;
@@ -45,6 +47,17 @@ impl Buffer {
         if x < self.width && y < self.height {
             let index = (x + (self.height - y - 1) * self.width) as usize;
             self.data[index] = color;
+        } else {
+            println!("Tried to set pixel out of bounds: ({}, {})", x, y);
+        }
+    }
+
+    pub fn get_pixel(&self, x: u32, y: u32) -> Color {
+        if x < self.width && y < self.height {
+            let index = (x + (self.height - y - 1) * self.width) as usize;
+            self.data[index]
+        } else {
+            panic!("Tried to get pixel out of bounds: ({}, {})", x, y);
         }
     }
 
@@ -65,10 +78,32 @@ impl Buffer {
     pub fn save(&self, path: &str) {
         let mut img = image::ImageBuffer::new(self.width, self.height);
         for (x, y, pixel) in img.enumerate_pixels_mut() {
-            let color = self.data[(x + y * self.height) as usize].to_u8();
+            let idx = (x + (self.height - y - 1) * self.width) as usize;
+            let color = self.data[idx].to_u8();
             *pixel = image::Rgb([color.0, color.1, color.2]);
         }
         img.save(path).unwrap();
+    }
+
+    pub fn shrink_by_two(&mut self) {
+        let mut new_data = Vec::new();
+        // take 2x2 pixels and average them
+        for y in (0..self.height).step_by(2) {
+            for x in (0..self.width).step_by(2) {
+                let mut color = Color::default();
+                for i in 0..2 {
+                    for j in 0..2 {
+                        let index = (x + j + (y + i) * self.width) as usize;
+                        color += self.data[index];
+                    }
+                }
+                color /= 4.0;
+                new_data.push(color);
+            }
+        }
+        self.width /= 2;
+        self.height /= 2;
+        self.data = new_data;
     }
 
     pub fn into_vec(&self) -> Vec<u8> {

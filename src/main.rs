@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use camera::AntiAliasingType;
 use color::Color;
 use float_cmp::{approx_eq, F64Margin};
 use geometry::{create_box_surfaces, Sphere, Surface};
@@ -62,14 +63,15 @@ fn main() {
     camera.add_material(material_blue);
 
     camera.perspective = true;
-    camera.supersampling = false;
+    camera.aa_type = AntiAliasingType::AdaptiveX;
     camera.pinhole_distance = 320.0;
 
     let mut scene = Scene::new();
-    let red_sphere = Sphere::new(Vector::new(228.5, 0.0, -300.0), 100.0);
-    let blue_sphere = Sphere::new(Vector::new(0.5, 0.0, -100.0), 100.0);
+    let red_sphere = Sphere::new(Vector::new(128.0, 128.0, -300.0), 100.0);
+    let blue_sphere = Sphere::new(Vector::new(0.0, -128.0, -100.0), 100.0);
     scene.add_primitive(Box::new(red_sphere), 0);
     scene.add_primitive(Box::new(blue_sphere), 1);
 
     camera.render_scene(&scene, "output"); 
+    camera.antialias_debug_buffer.save("aa_debug.png");
 }

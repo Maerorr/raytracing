@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path;
 
 use crate::buffer::Buffer;
@@ -6,6 +7,25 @@ use crate::geometry::Line;
 use crate::material::Material;
 use crate::math::{RayCastHit, Vector};
 use crate::scene::Scene;
+
+#[derive(Clone, PartialEq, Eq, Copy, Debug)]
+pub enum AntiAliasingType {
+    None,
+    Supersampling4x,
+    AdaptiveX,
+    AdaptiveO,
+}
+
+impl AntiAliasingType {
+    pub fn to_string(&self) -> &str {
+        match self {
+            AntiAliasingType::None => "None",
+            AntiAliasingType::Supersampling4x => "Supersampling4x",
+            AntiAliasingType::AdaptiveX => "AdaptiveX",
+            AntiAliasingType::AdaptiveO => "AdaptiveO",
+        }
+    }
+}
 
 pub struct Camera {
     pub position: Vector,
@@ -20,7 +40,8 @@ pub struct Camera {
     pub pinhole_distance: f64,
     pub materials: Vec<Material>,
     pub buffer: Buffer,
-    pub supersampling: bool,
+    pub antialias_debug_buffer: Buffer,
+    pub aa_type: AntiAliasingType,
 }
 
 impl Camera {
@@ -39,7 +60,8 @@ impl Camera {
             pinhole_distance: 250.0,
             materials: Vec::new(),
             buffer: Buffer::new(width as u32, height as u32),
-            supersampling: false,
+            antialias_debug_buffer: Buffer::new(width as u32, height as u32),
+            aa_type: AntiAliasingType::None,
         }
     }
 
@@ -48,47 +70,14 @@ impl Camera {
         self.materials.len() - 1
     }
 
-    // OLD RENDER FUNCTION
-    // pub fn render(&mut self, object: &Object) -> Vec<RayCastHit> {
-    //     // THIS IS JUST TO ROTATE THE CAMERA ONCE PER RENDER WITHOUT IT SPINNING AROUND
-    //     let mut l = self.line.clone();
-    //     let mut point = self.line.point;
-    //     point.rotate_by_quaternion(&self.rotation);
-    //     l.point.rotate_by_quaternion(&self.rotation);
-    //     l.direction.rotate_by_quaternion(&self.rotation);
-    //     let mut up = self.up.clone();
-    //     let mut right = self.right.clone();
-    //     up.rotate_by_quaternion(&self.rotation);
-    //     right.rotate_by_quaternion(&self.rotation);
-
-    //     self.debug.clear();
-    //     self.debug.push_str(&format!("Camera position: {}\n", l.point.to_string()));
-    //     self.debug.push_str(&format!("Camera direction: {}\n", l.direction.to_string()));
-    //     self.debug.push_str(&format!("Camera up: {}\n", up.to_string()));
-    //     self.debug.push_str(&format!("Camera right: {}\n", right.to_string()));
-
-    //     let mut hits: Vec<RayCastHit> = Vec::new();
-    //     for i in (-self.render_height / 2)..(self.render_height / 2) {
-    //         for j in (-self.render_width / 2)..(self.render_width / 2) {
-    //             l.point = point + up * i as f64 + right * j as f64;
-    //             let mut hit = l.intersection_object(&object, &l.point, &self.backface_culling);
-    //             hit.pos_on_screen = (j, i);
-    //             hits.push(hit);
-    //         }
-    //     }
-    //     hits
-    // }
-
     pub fn render_scene(&mut self, scene: &Scene, name: &str) {
         let mut path_specs = String::from(name);
         if self.perspective {
-            path_specs += "_perspective";
+            path_specs += "_perspective_";
         } else {
-            path_specs += "_orthographic";
+            path_specs += "_orthographic_";
         }
-        if self.supersampling {
-            path_specs += "_supersampling";
-        }
+        path_specs += self.aa_type.to_string();
         path_specs += ".png";
         let new_up = self.right.cross(&self.forward);
         let mut ray = Line::new(self.position, self.forward);
@@ -97,11 +86,20 @@ impl Camera {
 
         let time = std::time::Instant::now();
 
+        if self.aa_type == AntiAliasingType::Supersampling4x {
+            // Supersampling means: Render at twice the resolution and then shrink by two, interpolating the colors
+            self.render_width *= 2;
+            self.render_height *= 2;
+            self.buffer = Buffer::new(self.render_width as u32, self.render_height as u32);
+        }
+
         if !self.perspective {
-            for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
+            for i in (-self.render_height / 2)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
                     ray.point = self.position + new_up * i as f64 + self.right * j as f64;
-                    
+                    if self.aa_type == AntiAliasingType::Supersampling4x {
+                        ray.point /= 2.0;
+                    }
                     let color = self.shoot_ray(&ray, scene);
                     if color.is_some() {
                         self.set_pixel_ji(j, i, color.unwrap());
@@ -112,46 +110,95 @@ impl Camera {
             let pinhole_position = self.position - self.forward * self.pinhole_distance;
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
-                    let mut hit_colors: Vec<Color> = Vec::new();
                     //'pinhole' camera rendering
-                    if self.supersampling {
-                        let mut count = 0;
-                        for x in -1..2 {
-                            for y in -1..2 {
-                                ray.point = self.position + new_up * (i as f64 + 0.25 * x as f64) + self.right * (j as f64 + 0.25 * y as f64);
-                                ray.direction = Vector::from_points(pinhole_position, ray.point);
+                    ray.point = self.position + new_up * i as f64 + self.right * j as f64;
+                    if self.aa_type == AntiAliasingType::Supersampling4x {
+                        ray.point /= 2.0;
+                    }
 
-                                let color = self.shoot_ray(&ray, scene);
-                                if color.is_some() {
-                                    hit_colors.push(color.unwrap());
-                                    count += 1;
-                                }
-                            }
-                        }
-                        let colors_len = hit_colors.len();
-                        let mut pixel_color = Color::default();
-                        for color in hit_colors {
-                            pixel_color += color / colors_len as f32;
-                        }
-                        match count {
-                            0 => {},
-                            1..=8 => self.blend_pixel_ji(j, i, pixel_color, count as f32 / 8f32),
-                            9 => self.set_pixel_ji(j, i, pixel_color),
-                            _ => {println!("how??? {}", count)},
-                        }
-                    } else {
-                        ray.point = self.position + new_up * i as f64 + self.right * j as f64;
-                        ray.direction = Vector::from_points(pinhole_position, ray.point);
-                        
-                        let color = self.shoot_ray(&ray, scene);
-                        if color.is_some() {
-                            self.set_pixel_ji(j, i, color.unwrap());
-                        }
+                    ray.direction = Vector::from_points(pinhole_position, ray.point);
+                    
+                    let color = self.shoot_ray(&ray, scene);
+                    if color.is_some() {
+                        self.set_pixel_ji(j, i, color.unwrap());
                     }
                 }
             }
         }
+
+        if self.aa_type == AntiAliasingType::AdaptiveX || self.aa_type == AntiAliasingType::AdaptiveO {
+            // pixels (x, y) marked for additional rays.
+            let mut marked_for_antialiasing: HashMap<(i32, i32), bool> = HashMap::new();
+
+            for x in 1..(self.render_width - 1) {
+                for y in 1..(self.render_height - 1) {
+                    let center_color = self.buffer.get_pixel(x as u32, y as u32);
+                    // get all 8 pixels surrounding the pixel
+                    let mut surrounding_pixels: Vec<(Color, i32, i32)> = Vec::new();
+                    if self.aa_type == AntiAliasingType::AdaptiveO {
+                        for xx in -1..2 {
+                            for yy in -1..2 {
+                                if xx == 0 && yy == 0 {
+                                    continue;
+                                }
+                                surrounding_pixels.push((self.buffer.get_pixel((x + xx) as u32, (y + yy) as u32), x + xx, y + yy));
+                            }
+                        }
+                    } else {
+                        surrounding_pixels.push((self.buffer.get_pixel((x - 1) as u32, y as u32), x - 1, y));
+                        surrounding_pixels.push((self.buffer.get_pixel((x + 1) as u32, y as u32), x + 1, y));
+                        surrounding_pixels.push((self.buffer.get_pixel(x as u32, (y - 1) as u32), x, y - 1));
+                        surrounding_pixels.push((self.buffer.get_pixel(x as u32, (y + 1) as u32), x, y + 1));
+                    }                    
+
+                    for px in surrounding_pixels.iter() {
+                        if px.0 != center_color {
+                            marked_for_antialiasing.insert((x, y), true);
+                            marked_for_antialiasing.insert((px.1, px.2), true);
+                            self.antialias_debug_buffer.set_pixel(px.1 as u32, px.2 as u32, Color::new(1.0, 0.0, 0.0));
+                        }
+                    }
+                }
+            }
+
+            for (x, y) in marked_for_antialiasing.keys() {
+                let mut hit_colors: Vec<Color> = Vec::new();
+                let (j, i) = self.xy_to_ji(*x, *y);
+                let pinhole_position = self.position - self.forward * self.pinhole_distance;
+
+                for offset_x in -1..2 {
+                    for offset_y in -1..2 {
+                        if offset_x == 0 && offset_y == 0 {
+                            continue;
+                        }
+                        ray.point = self.position + 
+                                        new_up * (i as f64 + 0.25 * offset_x as f64) + 
+                                        self.right * (j as f64 + 0.25 * offset_y as f64);
+
+                        if self.perspective {
+                            ray.direction = Vector::from_points(pinhole_position, ray.point);
+                        }
+                        let color = self.shoot_ray(&ray, scene);
+                        if color.is_some() {
+                            hit_colors.push(color.unwrap());
+                        }
+                    }
+                }
+
+                let mut average_color = self.buffer.get_pixel(*x as u32, *y as u32);
+                for color in hit_colors.iter() {
+                    average_color += *color;
+                }
+                average_color /= 9.0;
+                self.set_pixel_ji(j, i, average_color);
+            }
+        }
+
         println!("Rendering took: {}ms", time.elapsed().as_millis());
+
+        if self.aa_type == AntiAliasingType::Supersampling4x {
+            self.buffer.shrink_by_two();
+        }
         self.buffer.save(path_specs.as_str());
     }
 
@@ -165,6 +212,14 @@ impl Camera {
 
     pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f32) {
         self.buffer.blend_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color, amount);
+    }
+
+    pub fn ji_to_xy(&self, j: i32, i: i32) -> (i32, i32) {
+        (j + self.render_width / 2, -i + self.render_height / 2)
+    }
+
+    pub fn xy_to_ji(&self, x: i32, y: i32) -> (i32, i32) {
+        (x - self.render_width / 2, self.render_height / 2 - y)
     }
 
     pub fn set_camera_position(&mut self, v: &Vector) {

@@ -1,4 +1,4 @@
-use std::{fmt::{self, Display, Formatter}, ops::{Add, AddAssign, Div, Mul, Sub, SubAssign}};
+use std::{fmt::{self, Display, Formatter}, ops::{Add, AddAssign, Div, DivAssign, Mul, Sub, SubAssign}};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
@@ -13,11 +13,10 @@ impl Color {
     }
 
     pub fn to_u8(&self) -> (u8, u8, u8) {
-        (
-            (self.r * 255.0) as u8,
-            (self.g * 255.0) as u8,
-            (self.b * 255.0) as u8,
-        )
+        let r = (self.r * 255.0).clamp(0.0, 255.0) as u8;
+        let g = (self.g * 255.0).clamp(0.0, 255.0) as u8;
+        let b = (self.b * 255.0).clamp(0.0, 255.0) as u8;
+        (r, g, b)
     }
 
     pub fn blend(&mut self, other: &Color, amount: f32) {
@@ -114,6 +113,9 @@ impl Div<f32> for Color {
     type Output = Color;
 
     fn div(self, other: f32) -> Color {
+        if other == 0.0 {
+            return self;
+        }
         Color {
             r: self.r / other,
             g: self.g / other,
@@ -122,8 +124,27 @@ impl Div<f32> for Color {
     }
 }
 
+impl DivAssign<f32> for Color {
+    fn div_assign(&mut self, other: f32) {
+        if other == 0.0 {
+            return;
+        }
+        self.r /= other;
+        self.g /= other;
+        self.b /= other;
+    }
+}
+
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Color: ({}, {}, {})", self.r, self.g, self.b)
+    }
+}
+
+impl PartialEq<Color> for Color {
+    fn eq(&self, other: &Color) -> bool {
+        let this = self.to_u8();
+        let other = other.to_u8();
+        this.0 == other.0 && this.1 == other.1 && this.2 == other.2
     }
 }
