@@ -16,6 +16,7 @@ pub enum LightType {
     Ambient,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Light {
     pub light_type: LightType,
     pub position: Vector,
@@ -70,17 +71,56 @@ impl Light {
                         self.attenuation.1 * (self.position - data.point).length() + // linear
                         self.attenuation.2 * (self.position - data.point).length_squared() // quadratic
                     );
-                let diffuse_color = self.color * (diff * self.strength * att);
+                let diffuse_color = self.color * (diff * att);
                 // specular
                 
                 let view_dir = -data.view_dir;
                 let reflect_dir = (-light_dir).reflect(&data.normal);
                 let spec = view_dir.dot(&reflect_dir).max(0.0).powf(data.shininess);
-                let specular_color = self.color * (spec * data.specular_amount);
+                let specular_color = self.color * (spec * data.specular_amount * att);
 
                 col += (diffuse_color + specular_color) * data.base_color;
                 col
             }
         }
+    }
+}
+
+
+pub struct RectangleAreaLight {
+    pub position: Vector,
+    pub color: Color,
+    pub attenuation: (f64, f64, f64),
+    pub lights: Vec<Light>,
+}
+
+impl RectangleAreaLight {
+    pub fn new(
+        position: Vector, 
+        color: Color, 
+        attenuation: (f64, f64, f64), 
+        v: Vector, w: Vector, 
+        v_size: f64, w_size: f64, 
+        light_density: f64) -> RectangleAreaLight {
+        let mut lights = Vec::new();
+        let v_step = v_size / light_density;
+        let w_step = w_size / light_density;
+        for i in 0..(light_density as i32) {
+            for j in 0..(light_density as i32) {
+                let light_pos = position + v * (i as f64) * v_step + w * (j as f64) * w_step;
+                lights.push(Light::new_point(light_pos, color, attenuation));
+            }
+        }
+        println!("created {} lights", lights.len());
+        RectangleAreaLight {
+            position,
+            color,
+            attenuation,
+            lights,
+        }
+    }
+
+    pub fn get_lights(&self) -> Vec<Light> {
+        self.lights.clone()
     }
 }

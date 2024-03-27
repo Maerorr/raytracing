@@ -23,4 +23,10 @@ impl Scene {
     pub fn add_light(&mut self, light: Light) {
         self.lights.push(light);
     }
+
+    pub fn add_lights(&mut self, lights: Vec<Light>) {
+        for light in lights {
+            self.lights.push(light);
+        }
+    }
 }
