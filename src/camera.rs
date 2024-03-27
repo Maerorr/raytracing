@@ -4,6 +4,7 @@ use std::path;
 use crate::buffer::Buffer;
 use crate::color::Color;
 use crate::geometry::Line;
+use crate::light::LightCalculationData;
 use crate::material::Material;
 use crate::math::{RayCastHit, Vector};
 use crate::scene::Scene;
@@ -262,11 +263,11 @@ impl Camera {
                     let distance = ray.point.distance(&intersection.0);
     
                     if closest_intersection.is_none() {
-                        closest_intersection = RayCastHit::new(Some(intersection));
+                        closest_intersection = hit.clone();
                         closest_material_idx = scene.material_index[i];
                         closest_distance = distance;
                     } else if distance < closest_distance {
-                        closest_intersection = RayCastHit::new(Some(intersection));
+                        closest_intersection = hit.clone();
                         closest_material_idx = scene.material_index[i];
                         closest_distance = distance;
                     }
@@ -275,7 +276,28 @@ impl Camera {
         }
 
         if closest_intersection.is_some() {
-            Some(self.materials[closest_material_idx].color)
+            //Some(self.materials[closest_material_idx].base_color)
+            // todo!("apply phong shading")
+            let mut color = Color::black();
+            let intersection = closest_intersection.unwrap().0;
+            let normal = closest_intersection.normal.unwrap();
+            let material = &self.materials[closest_material_idx];
+
+            let lighting_data = LightCalculationData {
+                point: intersection,
+                normal,
+                view_dir: ray.direction,
+                base_color: material.base_color,
+                shininess: material.shininess,
+                specular_amount: material.specular_amount,
+            };
+
+            for light in scene.lights.iter() {
+                let light_color = light.calculate_lighting(&lighting_data);
+                color += light_color;
+            }
+            
+            Some(color)
         } else {
             None
         }

@@ -2,7 +2,7 @@ use float_cmp::{approx_eq, F64Margin};
 
 use crate::{geometry::{Line, Sphere, Surface, Triangle}};
 
-use super::RayCastHit;
+use super::{RayCastHit, Vector};
 
 
 pub trait IntersectionPrimitive {
@@ -29,7 +29,7 @@ impl IntersectionPrimitive for Surface {
             if self.point_on_surface(&ts.0, &ts.1).is_none() {
                 return RayCastHit::new(None);
             }
-            RayCastHit::new(Some((intersection, angle)))
+            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal)
             
         } else {
             RayCastHit::new(None)
@@ -69,7 +69,7 @@ impl IntersectionPrimitive for Sphere {
         normal.normalize();
 
         let angle = ray.direction.angle_radians(&normal);
-        RayCastHit::new(Some((intersection, angle)))
+        RayCastHit::new(Some((intersection, angle))).with_normal(normal)
     }
 }
 
@@ -107,10 +107,11 @@ impl IntersectionPrimitive for Triangle {
         if t > 0.00001 {
             let intersection = ray.point_on_line(&t);
             let angle = ray.direction.angle_radians(&self.normal);
-            RayCastHit::new(Some((intersection, angle)))
+            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal)
         } else {
             //println!("t is out of bounds");
             RayCastHit::new(None)
         }
     }
+
 }

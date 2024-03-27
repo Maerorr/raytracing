@@ -5,6 +5,7 @@ use color::Color;
 use float_cmp::{approx_eq, F64Margin};
 use geometry::{create_box_surfaces, Sphere, Surface};
 use image::{DynamicImage, ImageBuffer};
+use light::Light;
 use material::Material;
 use math::{Quaternion, RayCastHit, Vector};
 use scene::Scene;
@@ -19,6 +20,7 @@ mod scene;
 mod material;
 mod color;
 mod buffer;
+mod light;
 
 mod geometry;
 mod math;
@@ -56,21 +58,47 @@ fn main() {
         Vector::new(0.0, 1.0, 0.0)
     );
 
-    let material_red = Material::new(Color::new(0.95, 0.1, 0.05));
-    let material_blue = Material::new(Color::new(0.0, 0.1, 0.95));
+    let material_red_specular = Material::new(
+        Color::new(0.9, 0.23, 0.11),
+        0.8,
+        16.0,
+    );
+    let material_blue_matte = Material::new(
+        Color::new(0.0, 0.1, 0.95),
+        0.1,
+        4.0,
+    );
 
-    camera.add_material(material_red);
-    camera.add_material(material_blue);
+    camera.add_material(material_red_specular);
+    camera.add_material(material_blue_matte);
 
     camera.perspective = true;
     camera.aa_type = AntiAliasingType::AdaptiveX;
     camera.pinhole_distance = 320.0;
 
     let mut scene = Scene::new();
-    let red_sphere = Sphere::new(Vector::new(128.0, 0.0, -300.0), 100.0);
-    let blue_sphere = Sphere::new(Vector::new(0.0, 0.0, -100.0), 100.0);
-    scene.add_primitive(Box::new(red_sphere), 0);
-    scene.add_primitive(Box::new(blue_sphere), 1);
+    // let red_sphere = Sphere::new(Vector::new(128.0, 0.0, -300.0), 100.0);
+    // let blue_sphere = Sphere::new(Vector::new(0.0, 0.0, -100.0), 100.0);
+    // scene.add_primitive(Box::new(red_sphere), 0);
+    // scene.add_primitive(Box::new(blue_sphere), 1);
+
+    // create 8 by 8 grid of spheres at y = -128, with radius of 25 and spacing of 75
+    let y = -225.0;
+    let radius = 25.0;
+    let spacing = 75.0;
+    let mut material = 0;
+    for i in 0..8 {
+        for j in 0..9 {
+            let x = (i as f64 - 3.5) * spacing;
+            let z = (j as f64 - 3.5) * spacing - 300.0;
+            let sphere = Sphere::new(Vector::new(x, y, z), radius);
+            scene.add_primitive(Box::new(sphere), material);
+            material ^= 1;
+        }
+    }
+
+    let ambient = Light::new_ambient(Color::new(0.1, 0.1, 0.1));
+    scene.add_light(ambient);
 
     camera.render_scene(&scene, "output"); 
     camera.antialias_debug_buffer.save("aa_debug.png");

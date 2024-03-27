@@ -12,6 +12,14 @@ impl Color {
         Color { r, g, b }
     }
 
+    pub fn black() -> Color {
+        Color::new(0.0, 0.0, 0.0)
+    }
+
+    pub fn white() -> Color {
+        Color::new(1.0, 1.0, 1.0)
+    }
+
     pub fn to_u8(&self) -> (u8, u8, u8) {
         // if self.r > 1.0 || self.g > 1.0 || self.b > 1.0 || self.r < 0.0 || self.g < 0.0 || self.b < 0.0 {
         //     panic!("Color values must be between 0.0 and 1.0");
