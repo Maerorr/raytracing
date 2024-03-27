@@ -1,14 +1,16 @@
 use crate::{color::Color, math::Vector};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LightCalculationData {
     pub point: Vector,
     pub normal: Vector,
     pub view_dir: Vector,
     pub base_color: Color,
-    pub shininess: f32,
-    pub specular_amount: f32,
+    pub shininess: f64,
+    pub specular_amount: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LightType {
     Point,
     Ambient,
@@ -18,43 +20,66 @@ pub struct Light {
     pub light_type: LightType,
     pub position: Vector,
     pub color: Color,
+    pub strength: f64,
                    // const, lin, quad
-    pub attenuation: (f32, f32, f32),
+    pub attenuation: (f64, f64, f64),
 }
 
 impl Light {
-    pub fn new(light_type: LightType, position: Vector, color: Color, attenuation: (f32, f32, f32)) -> Light {
+    pub fn new(light_type: LightType, position: Vector, color: Color, strength: f64, attenuation: (f64, f64, f64)) -> Light {
         Light {
             light_type,
             position,
             color,
+            strength,
             attenuation,
         }
     }
 
-    pub fn new_ambient(color: Color) -> Light {
+    pub fn new_ambient(color: Color, strength: f64) -> Light {
         Light {
             light_type: LightType::Ambient,
             position: Vector::new(0.0, 0.0, 0.0),
             color,
+            strength,
             attenuation: (0.0, 0.0, 0.0),
         }
     }
 
-    pub fn new_point(position: Vector, color: Color, attenuation: (f32, f32, f32)) -> Light {
+    pub fn new_point(position: Vector, color: Color, attenuation: (f64, f64, f64)) -> Light {
         Light {
             light_type: LightType::Point,
             position,
             color,
+            strength: 1.0,
             attenuation,
         }
     }
 
     pub fn calculate_lighting(&self, data: &LightCalculationData) -> Color {
         match self.light_type {
-            LightType::Ambient => data.base_color * self.color,
+            LightType::Ambient => data.base_color * (self.color * self.strength),
             LightType::Point => {
-                Color::new(0.0, 0.0, 0.0)
+                let mut col = Color::black();
+                // diffuse
+                let light_dir = (self.position - data.point)._normalize();
+                let diff = data.normal.dot(&light_dir).max(0.0);
+                let att = 1.0 / 
+                    (   // attenuation
+                        self.attenuation.0 + // constant
+                        self.attenuation.1 * (self.position - data.point).length() + // linear
+                        self.attenuation.2 * (self.position - data.point).length_squared() // quadratic
+                    );
+                let diffuse_color = self.color * (diff * self.strength * att);
+                // specular
+                
+                let view_dir = -data.view_dir;
+                let reflect_dir = (-light_dir).reflect(&data.normal);
+                let spec = view_dir.dot(&reflect_dir).max(0.0).powf(data.shininess);
+                let specular_color = self.color * (spec * data.specular_amount);
+
+                col += (diffuse_color + specular_color) * data.base_color;
+                col
             }
         }
     }

@@ -1,23 +1,15 @@
-use std::{fmt::{self, Display, Formatter}, ops::{Add, AddAssign, Div, DivAssign, Mul, Sub, SubAssign}};
+use std::{fmt::{self, Display, Formatter}, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
+    pub r: f64,
+    pub g: f64,
+    pub b: f64,
 }
 
 impl Color {
-    pub fn new(r: f32, g: f32, b: f32) -> Color {
+    pub fn new(r: f64, g: f64, b: f64) -> Color {
         Color { r, g, b }
-    }
-
-    pub fn black() -> Color {
-        Color::new(0.0, 0.0, 0.0)
-    }
-
-    pub fn white() -> Color {
-        Color::new(1.0, 1.0, 1.0)
     }
 
     pub fn to_u8(&self) -> (u8, u8, u8) {
@@ -30,10 +22,30 @@ impl Color {
         (r, g, b)
     }
 
-    pub fn blend(&mut self, other: &Color, amount: f32) {
+    pub fn blend(&mut self, other: &Color, amount: f64) {
         self.r = self.r * (1.0 - amount) + other.r * amount;
         self.g = self.g * (1.0 - amount) + other.g * amount;
         self.b = self.b * (1.0 - amount) + other.b * amount;
+    }
+
+    pub fn black() -> Color {
+        Color::new(0.0, 0.0, 0.0)
+    }
+
+    pub fn white() -> Color {
+        Color::new(1.0, 1.0, 1.0)
+    }
+
+    pub fn red() -> Color {
+        Color::new(1.0, 0.0, 0.0)
+    }
+
+    pub fn green() -> Color {
+        Color::new(0.0, 1.0, 0.0)
+    }
+
+    pub fn blue() -> Color {
+        Color::new(0.0, 0.0, 1.0)
     }
 }
 
@@ -96,15 +108,22 @@ impl Mul for Color {
     }
 }
 
-impl Mul<f32> for Color {
+impl Mul<f64> for Color {
     type Output = Color;
 
-    fn mul(self, other: f32) -> Color {
+    fn mul(self, other: f64) -> Color {
         Color {
             r: self.r * other,
             g: self.g * other,
             b: self.b * other,
         }
+    }
+}
+impl MulAssign<f64> for Color {
+    fn mul_assign(&mut self, other: f64) {
+        self.r *= other;
+        self.g *= other;
+        self.b *= other;
     }
 }
 
@@ -120,10 +139,10 @@ impl Div for Color {
     }
 }
 
-impl Div<f32> for Color {
+impl Div<f64> for Color {
     type Output = Color;
 
-    fn div(self, other: f32) -> Color {
+    fn div(self, other: f64) -> Color {
         if other == 0.0 {
             return self;
         }
@@ -135,8 +154,8 @@ impl Div<f32> for Color {
     }
 }
 
-impl DivAssign<f32> for Color {
-    fn div_assign(&mut self, other: f32) {
+impl DivAssign<f64> for Color {
+    fn div_assign(&mut self, other: f64) {
         if other == 0.0 {
             return;
         }

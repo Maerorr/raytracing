@@ -4,7 +4,7 @@ use std::path;
 use crate::buffer::Buffer;
 use crate::color::Color;
 use crate::geometry::Line;
-use crate::light::LightCalculationData;
+use crate::light::{LightCalculationData, LightType};
 use crate::material::Material;
 use crate::math::{RayCastHit, Vector};
 use crate::scene::Scene;
@@ -199,10 +199,10 @@ impl Camera {
                     0 => {},
                     1..=8 => {
                         let bg_color = self.buffer.clear_color;
-                        let color = average_color + bg_color * (9 - count) as f32;
+                        let color = average_color + bg_color * (9 - count) as f64;
                         self.set_pixel_ji(j, i, color / 9.0);
                     }
-                    9 => self.set_pixel_ji(j, i, average_color / count as f32),
+                    9 => self.set_pixel_ji(j, i, average_color / count as f64),
                     _ => {println!("how??? {}", count)},
                 }
             }
@@ -228,7 +228,7 @@ impl Camera {
         self.buffer.get_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32)
     }
 
-    pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f32) {
+    pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f64) {
         self.buffer.blend_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color, amount);
     }
 
@@ -246,6 +246,20 @@ impl Camera {
 
     pub fn get_debug_info(&self) -> String {
         self.debug.clone()
+    }
+
+    pub fn shoot_ray_into_light(&mut self, ray: &Line, scene: &Scene, max_distance: f64) -> bool {
+        for primitive in scene.primitives.iter() {
+            let hit = primitive.intersect(&ray);
+            if hit.is_some() {
+                let intersection = hit.unwrap().0;
+                let distance = ray.point.distance(&intersection);
+                if distance < max_distance {
+                    return true;
+                }
+            }
+        }
+        return false
     }
 
     pub fn shoot_ray(&mut self, ray: &Line, scene: &Scene) -> Option<Color> {
@@ -276,8 +290,6 @@ impl Camera {
         }
 
         if closest_intersection.is_some() {
-            //Some(self.materials[closest_material_idx].base_color)
-            // todo!("apply phong shading")
             let mut color = Color::black();
             let intersection = closest_intersection.unwrap().0;
             let normal = closest_intersection.normal.unwrap();
@@ -293,8 +305,23 @@ impl Camera {
             };
 
             for light in scene.lights.iter() {
-                let light_color = light.calculate_lighting(&lighting_data);
-                color += light_color;
+                if light.light_type == LightType::Ambient {
+                    let light_color = light.calculate_lighting(&lighting_data);
+                    color += light_color;
+                    continue;
+                } else {
+                    // shot ray into the light
+                    let light_dir = (light.position - intersection)._normalize();
+                    let line_pos = intersection + light_dir * 0.01;
+                    let light_ray = Line::new(line_pos, light_dir);
+                    let distance = intersection.distance(&light.position);
+                    let shadowed = self.shoot_ray_into_light(&light_ray, scene, distance);
+
+                    if !shadowed {
+                        let light_color = light.calculate_lighting(&lighting_data);
+                        color += light_color;
+                    }
+                }
             }
             
             Some(color)

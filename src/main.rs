@@ -50,6 +50,11 @@ pub fn display_debug(c: &Camera) {
     println!("{}", c.get_debug_info());
 }
 
+const RED_MAT: usize = 0;
+const BLUE_MAT: usize = 1;
+const WHITE_MAT: usize = 2;
+const GREEN_MAT: usize = 3;
+
 fn main() {
     let mut camera = Camera::new(
         Vector::new(0.0, 0.0, 0.0),
@@ -60,45 +65,104 @@ fn main() {
 
     let material_red_specular = Material::new(
         Color::new(0.9, 0.23, 0.11),
-        0.8,
-        16.0,
+        0.9,
+        24.0,
     );
     let material_blue_matte = Material::new(
         Color::new(0.0, 0.1, 0.95),
         0.1,
         4.0,
     );
+    let white_material = Material::new(
+        Color::white(),
+        0.01,
+        4.0,
+    );
+
+    let green_mat = Material::new(
+        Color::green(),
+        0.8,
+        16.0,
+    );
 
     camera.add_material(material_red_specular);
     camera.add_material(material_blue_matte);
+    camera.add_material(white_material);
+    camera.add_material(green_mat);
 
     camera.perspective = true;
-    camera.aa_type = AntiAliasingType::AdaptiveX;
+    camera.aa_type = AntiAliasingType::Supersampling4x;
     camera.pinhole_distance = 320.0;
 
     let mut scene = Scene::new();
-    // let red_sphere = Sphere::new(Vector::new(128.0, 0.0, -300.0), 100.0);
-    // let blue_sphere = Sphere::new(Vector::new(0.0, 0.0, -100.0), 100.0);
-    // scene.add_primitive(Box::new(red_sphere), 0);
-    // scene.add_primitive(Box::new(blue_sphere), 1);
 
-    // create 8 by 8 grid of spheres at y = -128, with radius of 25 and spacing of 75
-    let y = -225.0;
-    let radius = 25.0;
-    let spacing = 75.0;
-    let mut material = 0;
-    for i in 0..8 {
-        for j in 0..9 {
-            let x = (i as f64 - 3.5) * spacing;
-            let z = (j as f64 - 3.5) * spacing - 300.0;
-            let sphere = Sphere::new(Vector::new(x, y, z), radius);
-            scene.add_primitive(Box::new(sphere), material);
-            material ^= 1;
-        }
-    }
+    let floor = Surface::new_vw(
+        Vector::new(0.0, -300.0, 0.0),
+        Vector::new(1.0, 0.0, 0.0),
+        Vector::new(0.0, 0.0, 1.0),
+        None,
+        None,
+        Vector::new(0.0, 1.0, 0.0)
+    );
+    scene.add_primitive(Box::new(floor), BLUE_MAT);
 
-    let ambient = Light::new_ambient(Color::new(0.1, 0.1, 0.1));
+    let back_wall = Surface::new_vw(
+        Vector::new(0.0, 0.0, -500.0),
+        Vector::new(-1.0, 0.0, 0.0),
+        Vector::new(0.0, 1.0, 0.0),
+        None,
+        None,
+        Vector::new(0.0, 0.0, 1.0)
+    );
+    scene.add_primitive(Box::new(back_wall), RED_MAT);
+
+    let left_wall = Surface::new_vw(
+        Vector::new(-300.0, 0.0, 0.0),
+        Vector::new(0.0, 0.0, 1.0),
+        Vector::new(0.0, 1.0, 0.0),
+        None,
+        None,
+        Vector::new(1.0, 0.0, 0.0)
+    );
+    scene.add_primitive(Box::new(left_wall), RED_MAT);
+
+    let right_wall = Surface::new_vw(
+        Vector::new(300.0, 0.0, 0.0),
+        Vector::new(0.0, 0.0, -1.0),
+        Vector::new(0.0, 1.0, 0.0),
+        None,
+        None,
+        Vector::new(-1.0, 0.0, 0.0)
+    );
+    scene.add_primitive(Box::new(right_wall), RED_MAT);
+
+    let ceiling = Surface::new_vw(
+        Vector::new(0.0, 300.0, 0.0),
+        Vector::new(1.0, 0.0, 0.0),
+        Vector::new(0.0, 0.0, 1.0),
+        None,
+        None,
+        Vector::new(0.0, -1.0, 0.0)
+    );
+    scene.add_primitive(Box::new(ceiling), BLUE_MAT);
+
+    let sphere = Sphere::new(Vector::new(-125.0, -220.0, -100.0), 50.0);
+    scene.add_primitive(Box::new(sphere), BLUE_MAT);
+
+    let sphere2 = Sphere::new(Vector::new(-125.0, 100.0, -200.0), 50.0);
+    scene.add_primitive(Box::new(sphere2), RED_MAT);
+
+    let sphere3 = Sphere::new(Vector::new(120.0, -200.0, -220.0), 50.0);
+    scene.add_primitive(Box::new(sphere3), GREEN_MAT);
+
+    let ambient = Light::new_ambient(Color::white(), 0.11);
     scene.add_light(ambient);
+
+    let point = Light::new_point(
+        Vector::new(0.0, 0.0, -50.0),
+        Color::white(), 
+        (0.45, 0.0009, 0.00001));
+    scene.add_light(point);
 
     camera.render_scene(&scene, "output"); 
     camera.antialias_debug_buffer.save("aa_debug.png");

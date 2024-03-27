@@ -14,7 +14,17 @@ pub struct Surface {
 impl Surface {
     // create surface from point and a normal vector
     pub fn new_normal(point: Vector, normal: Vector) -> Surface {
-        Surface { point, v: None, max_v: None, w: None, max_w: None, normal}
+        // calculate v and w vectors
+        let mut v = Vector::new(1.0, 0.0, 0.0);
+        if normal.x.abs() > 0.9 {
+            v = Vector::new(0.0, 1.0, 0.0);
+        }
+        let mut w = normal.cross(&v);
+        v = normal.cross(&w);
+        v.normalize();
+        w.normalize();
+
+        Surface { point, v: Some(v) , max_v: None, w: Some(w), max_w: None, normal}
     }
 
     // create surface from point and two vectors

@@ -134,6 +134,13 @@ impl Vector {
 
         out
     }
+
+    pub fn reflect(&self, normal: &Vector) -> Vector {
+        let dot = self.dot(normal);
+        let mut out = *self - *normal * 2.0 * dot;
+        out.normalize();
+        out
+    }
 }
 
 // + operator overload
@@ -247,6 +254,19 @@ impl ops::DivAssign<f64> for Vector {
             self.x /= scalar;
             self.y /= scalar;
             self.z /= scalar;
+        }
+    }
+}
+
+impl ops::Neg for Vector {
+    type Output = Vector;
+
+    fn neg(self) -> Vector {
+        Vector {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+            w: self.w,
         }
     }
 }
