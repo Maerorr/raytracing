@@ -121,4 +121,8 @@ impl Buffer {
         }
         vec
     }
+
+    pub fn write_pixel_by_idx(&mut self, idx: usize, color: Color) {
+        self.data[idx] = color;
+    }
 }

@@ -1,7 +1,7 @@
 use crate::{light::Light, math::intersection::IntersectionPrimitive};
 
 pub struct Scene {
-    pub primitives: Vec<Box<dyn IntersectionPrimitive>>,
+    pub primitives: Vec<Box<dyn IntersectionPrimitive + Send + Sync>>,
     pub material_index: Vec<usize>,
     pub lights: Vec<Light>,
 }
@@ -15,7 +15,7 @@ impl Scene {
         }
     }
 
-    pub fn add_primitive(&mut self, primitive: Box<dyn IntersectionPrimitive>, material_idx: usize) {
+    pub fn add_primitive(&mut self, primitive: Box<dyn IntersectionPrimitive + Send + Sync>, material_idx: usize) {
         self.primitives.push(primitive);
         self.material_index.push(material_idx);
     }

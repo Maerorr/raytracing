@@ -1,6 +1,7 @@
 use crate::color::Color;
 
 
+#[derive(Debug, Copy, Clone)]
 pub struct Material {
     pub base_color: Color,
     pub specular_amount: f64,

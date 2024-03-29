@@ -90,10 +90,6 @@ fn main() {
     camera.add_material(white_material);
     camera.add_material(green_mat);
 
-    camera.perspective = true;
-    camera.aa_type = AntiAliasingType::Supersampling4x;
-    camera.pinhole_distance = 320.0;
-
     let mut scene = Scene::new();
 
     let floor = Surface::new_vw(
@@ -176,6 +172,11 @@ fn main() {
     );
     scene.add_lights(area_light.get_lights());
 
-    camera.render_scene(&scene, "output"); 
+    camera.perspective = true;
+    camera.aa_type = AntiAliasingType::Supersampling4x;
+    camera.pinhole_distance = 320.0;
+
+    //camera.render_scene(&scene, "output"); 
+    camera.render_scene_multithreaded(scene, "multithread.png");
     camera.antialias_debug_buffer.save("aa_debug.png");
 }
