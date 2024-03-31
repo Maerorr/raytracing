@@ -7,7 +7,7 @@ use crate::buffer::Buffer;
 use crate::color::Color;
 use crate::geometry::Line;
 use crate::light::{LightCalculationData, LightType};
-use crate::material::Material;
+use crate::material::{self, Material};
 use crate::math::{RayCastHit, Vector};
 use crate::scene::Scene;
 
@@ -40,7 +40,7 @@ pub struct Camera {
     debug: String,
     pub backface_culling: bool,
     pub perspective: bool,
-    pub pinhole_distance: f64,
+    pub pinhole_distance: f32,
     pub materials: Vec<Material>,
     pub buffer: Buffer,
     pub antialias_debug_buffer: Buffer,
@@ -85,7 +85,7 @@ impl Camera {
         let new_up = self.right.cross(&self.forward);
         let mut ray = Line::new(self.position, self.forward);
 
-        self.buffer.clear_color(Color::new(0.124, 0.86, 0.42));
+        self.buffer.clear_color(Color::black());
 
         let time = std::time::Instant::now();
 
@@ -99,7 +99,7 @@ impl Camera {
         if !self.perspective {
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
-                    ray.point = self.position + new_up * i as f64 + self.right * j as f64;
+                    ray.point = self.position + new_up * i as f32 + self.right * j as f32;
                     if self.aa_type == AntiAliasingType::Supersampling4x {
                         ray.point /= 2.0;
                     }
@@ -114,7 +114,7 @@ impl Camera {
             for i in (-self.render_height / 2 + 1)..(self.render_height / 2) {
                 for j in (-self.render_width / 2)..(self.render_width / 2) {
                     //'pinhole' camera rendering
-                    ray.point = self.position + new_up * i as f64 + self.right * j as f64;
+                    ray.point = self.position + new_up * i as f32 + self.right * j as f32;
                     if self.aa_type == AntiAliasingType::Supersampling4x {
                         ray.point /= 2.0;
                     }
@@ -175,8 +175,8 @@ impl Camera {
                             continue;
                         }
                         ray.point = self.position + 
-                                        new_up * (i as f64 + 0.25 * offset_x as f64) + 
-                                        self.right * (j as f64 + 0.25 * offset_y as f64);
+                                        new_up * (i as f32 + 0.25 * offset_x as f32) + 
+                                        self.right * (j as f32 + 0.25 * offset_y as f32);
 
                         if self.perspective {
                             ray.direction = Vector::from_points(pinhole_position, ray.point);
@@ -201,10 +201,10 @@ impl Camera {
                     0 => {},
                     1..=8 => {
                         let bg_color = self.buffer.clear_color;
-                        let color = average_color + bg_color * (9 - count) as f64;
+                        let color = average_color + bg_color * (9 - count) as f32;
                         self.set_pixel_ji(j, i, color / 9.0);
                     }
-                    9 => self.set_pixel_ji(j, i, average_color / count as f64),
+                    9 => self.set_pixel_ji(j, i, average_color / count as f32),
                     _ => {println!("how??? {}", count)},
                 }
             }
@@ -230,7 +230,7 @@ impl Camera {
         self.buffer.get_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32)
     }
 
-    pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f64) {
+    pub fn blend_pixel_ji(&mut self, j: i32, i: i32, color: Color, amount: f32) {
         self.buffer.blend_pixel((j + self.render_width / 2) as u32, (-i + self.render_height / 2) as u32, color, amount);
     }
 
@@ -329,7 +329,7 @@ impl Camera {
         let new_up = self.right.cross(&self.forward);
         let mut ray = Line::new(self.position, self.forward);
 
-        self.buffer.clear_color(Color::new(0.124, 0.86, 0.42));
+        self.buffer.clear_color(Color::black());
 
         let time = std::time::Instant::now();
 
@@ -350,6 +350,7 @@ impl Camera {
         // but futher the time doesn't decrease linearly. 10x decrease is seen for 16 thread.
         // after than the time only increases
         let thread_nums = 16;
+        println!("rendering with {} threads", thread_nums);
 
         for i in 0..thread_nums {
             let min_i = -self.render_height / 2 + (self.render_height / thread_nums) * i;
@@ -442,8 +443,8 @@ impl Camera {
                             continue;
                         }
                         ray.point = self.position + 
-                                        new_up * (i as f64 + 0.25 * offset_x as f64) + 
-                                        self.right * (j as f64 + 0.25 * offset_y as f64);
+                                        new_up * (i as f32 + 0.25 * offset_x as f32) + 
+                                        self.right * (j as f32 + 0.25 * offset_y as f32);
 
                         if self.perspective {
                             ray.direction = Vector::from_points(pinhole_position, ray.point);
@@ -465,10 +466,10 @@ impl Camera {
                     0 => {},
                     1..=8 => {
                         let bg_color = self.buffer.clear_color;
-                        let color = average_color + bg_color * (9 - count) as f64;
+                        let color = average_color + bg_color * (9 - count) as f32;
                         self.set_pixel_ji(j, i, color / 9.0);
                     }
-                    9 => self.set_pixel_ji(j, i, average_color / count as f64),
+                    9 => self.set_pixel_ji(j, i, average_color / count as f32),
                     _ => {println!("how??? {}", count)},
                 }
             }
@@ -494,7 +495,7 @@ pub struct ThreadRenderDara {
     pub forward: Vector,
     pub perspective: bool,
     pub aa_type: AntiAliasingType,
-    pub pinhole_distance: f64,
+    pub pinhole_distance: f32,
     pub materials: Vec<Material>,
     pub scene: Arc<Scene>,
 }
@@ -505,11 +506,11 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
         let mut ray = Line::new(data.position, data.forward);
         for i in data.min_i..data.max_i {
             for j in data.min_j..data.max_j {
-                ray.point = data.position + data.up * i as f64 + data.right * j as f64;
+                ray.point = data.position + data.up * i as f32 + data.right * j as f32;
                 if data.aa_type == AntiAliasingType::Supersampling4x {
                     ray.point /= 2.0;
                 }
-                let color = p_shoot_ray(&ray, &data.scene, &data.materials);
+                let color = p_shoot_ray(&ray, &data.scene, &data.materials, None);
                 output.push(color);
             }
         }
@@ -519,14 +520,14 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
         for i in data.min_i..data.max_i {
             for j in data.min_j..data.max_j {
                 //'pinhole' camera rendering
-                ray.point = data.position + data.up * i as f64 + data.right * j as f64;
+                ray.point = data.position + data.up * i as f32 + data.right * j as f32;
                 if data.aa_type == AntiAliasingType::Supersampling4x {
                     ray.point /= 2.0;
                 }
 
                 ray.direction = Vector::from_points(pinhole_position, ray.point);
                 
-                let color = p_shoot_ray(&ray, &data.scene, &data.materials);
+                let color = p_shoot_ray(&ray, &data.scene, &data.materials, None);
                 output.push(color);
             }
         }
@@ -535,74 +536,94 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
     output
 }
 
-pub fn p_shoot_ray(ray: &Line, scene: &Scene, materials: &Vec<Material>) -> Option<Color> {
+pub fn p_shoot_ray(ray: &Line, scene: &Scene, materials: &Vec<Material>, max_distance: Option<f32>) -> Option<Color> {
+    let maxd = max_distance.unwrap_or(0.0);
     let mut closest_intersection = RayCastHit::new(None);
-        let mut closest_distance = 0.0;
-        let mut closest_material_idx = 0;
-        for (i, primitive) in scene.primitives.iter().enumerate() {
-            let hit = primitive.intersect(&ray);
-            if hit.is_some() {
-                let from_cam_to_point = hit.unwrap().0 - ray.point;
-    
-                if from_cam_to_point.dot(&ray.direction) >= 0.0 {
-                    let intersection = hit.unwrap();
-                    let distance = ray.point.distance(&intersection.0);
-    
-                    if closest_intersection.is_none() {
-                        closest_intersection = hit.clone();
-                        closest_material_idx = scene.material_index[i];
-                        closest_distance = distance;
-                    } else if distance < closest_distance {
-                        closest_intersection = hit.clone();
-                        closest_material_idx = scene.material_index[i];
-                        closest_distance = distance;
-                    }
+    let mut closest_distance = 0.0;
+    let mut closest_material_idx = 0;
+    for (i, primitive) in scene.primitives.iter().enumerate() {
+        let hit = primitive.intersect(&ray);
+        if hit.is_some() {
+            let from_cam_to_point = hit.unwrap().0 - ray.point;
+
+            if from_cam_to_point.dot(&ray.direction) >= 0.0 {
+                let intersection = hit.unwrap();
+                let distance = ray.point.distance(&intersection.0);
+
+                if closest_intersection.is_none() {
+                    closest_intersection = hit.clone();
+                    closest_material_idx = scene.material_index[i];
+                    closest_distance = distance;
+                } else if distance < closest_distance {
+                    closest_intersection = hit.clone();
+                    closest_material_idx = scene.material_index[i];
+                    closest_distance = distance;
                 }
             }
         }
+    }
 
-        if closest_intersection.is_some() {
-            let mut color = Color::black();
-            let intersection = closest_intersection.unwrap().0;
-            let normal = closest_intersection.normal.unwrap();
-            let material = &materials[closest_material_idx];
+    if closest_intersection.is_some() {
+        if max_distance.is_some() {
+            if closest_intersection.distance > max_distance.unwrap() {
+                return None;
+            }
+        }
 
-            let lighting_data = LightCalculationData {
-                point: intersection,
-                normal,
-                view_dir: ray.direction,
-                base_color: material.base_color,
-                shininess: material.shininess,
-                specular_amount: material.specular_amount,
-            };
+        let mut color = Color::black();
+        let intersection = closest_intersection.unwrap().0;
+        let normal = closest_intersection.normal.unwrap();
+        let material = &materials[closest_material_idx];
 
-            for light in scene.lights.iter() {
-                if light.light_type == LightType::Ambient {
+        let lighting_data = LightCalculationData {
+            point: intersection,
+            normal,
+            view_dir: ray.direction,
+            base_color: material.base_color,
+            shininess: material.shininess,
+            specular_amount: material.specular_amount,
+        };
+
+        for light in scene.lights.iter() {
+            if light.light_type == LightType::Ambient {
+                let light_color = light.calculate_lighting(&lighting_data);
+                color += light_color;
+                continue;
+            } else {
+                // shot ray into the light
+                let light_dir = (light.position - intersection)._normalize();
+                let line_pos = intersection + light_dir * 0.01;
+                let light_ray = Line::new(line_pos, light_dir);
+                let distance = intersection.distance(&light.position);
+                let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
+
+                if !shadowed {
                     let light_color = light.calculate_lighting(&lighting_data);
                     color += light_color;
-                    continue;
-                } else {
-                    // shot ray into the light
-                    let light_dir = (light.position - intersection)._normalize();
-                    let line_pos = intersection + light_dir * 0.01;
-                    let light_ray = Line::new(line_pos, light_dir);
-                    let distance = intersection.distance(&light.position);
-                    let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
-
-                    if !shadowed {
-                        let light_color = light.calculate_lighting(&lighting_data);
-                        color += light_color;
-                    }
                 }
             }
-            
-            Some(color)
-        } else {
-            None
         }
+
+        if material.material_type == crate::material::MaterialType::Reflective {
+            let reflected_dir = ray.direction.reflect(&normal);
+            let reflected_ray_start = intersection + reflected_dir * 0.1;
+            let reflected_ray = Line::new(reflected_ray_start, reflected_dir);
+            let max_dist = (material.max_bounce_depth - closest_intersection.distance - maxd).max(0.0);
+            let reflected_color = p_shoot_ray(&reflected_ray, scene, materials, Some(max_dist));
+            if reflected_color.is_some() {
+                color = color * reflected_color.unwrap();
+            } else {
+                color *= 0.2;
+            }
+        }
+
+        Some(color)
+    } else {
+        None
+    }
 }
 
-pub fn shoot_ray_into_light(ray: &Line, scene: &Scene, max_distance: f64) -> bool {
+pub fn shoot_ray_into_light(ray: &Line, scene: &Scene, max_distance: f32) -> bool {
     for primitive in scene.primitives.iter() {
         let hit = primitive.intersect(&ray);
         if hit.is_some() {

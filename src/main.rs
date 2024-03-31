@@ -2,15 +2,16 @@ use std::fs::File;
 use std::io::Write;
 use camera::AntiAliasingType;
 use color::Color;
-use float_cmp::{approx_eq, F64Margin};
+use float_cmp::{approx_eq};
 use geometry::{create_box_surfaces, Sphere, Surface};
 use image::{DynamicImage, ImageBuffer};
 use light::{Light, RectangleAreaLight};
 use material::Material;
 use math::{Quaternion, RayCastHit, Vector};
+use presentation_scenes::{reflection_refraction_scene, shading_scene};
 use scene::Scene;
 
-use crate::math::{as_degrees, as_radians};
+use crate::math::{as_degrees, as_radians, IntersectionPrimitive};
 use crate::camera::Camera;
 
 use crate::geometry::{Line, Triangle};
@@ -21,6 +22,7 @@ mod material;
 mod color;
 mod buffer;
 mod light;
+mod presentation_scenes;
 
 mod geometry;
 mod math;
@@ -54,8 +56,12 @@ const RED_MAT: usize = 0;
 const BLUE_MAT: usize = 1;
 const WHITE_MAT: usize = 2;
 const GREEN_MAT: usize = 3;
+const BLACK_MAT: usize = 4;
+const MIRROR_MAT: usize = 5;
 
 fn main() {
+
+
     let mut camera = Camera::new(
         Vector::new(0.0, 0.0, 0.0),
         Vector::new(0.0, 0.0, -1.0),
@@ -63,120 +69,63 @@ fn main() {
         Vector::new(0.0, 1.0, 0.0)
     );
 
-    let material_red_specular = Material::new(
-        Color::new(0.9, 0.23, 0.11),
-        0.9,
-        24.0,
-    );
-    let material_blue_matte = Material::new(
-        Color::new(0.0, 0.1, 0.95),
-        0.1,
-        4.0,
-    );
-    let white_material = Material::new(
-        Color::white(),
-        0.01,
-        4.0,
-    );
+    let materials = init_materials();
+    for mat in materials {
+        camera.add_material(mat);
+    }
 
-    let green_mat = Material::new(
-        Color::green() * 0.8,
-        0.8,
-        16.0,
-    );
-
-    camera.add_material(material_red_specular);
-    camera.add_material(material_blue_matte);
-    camera.add_material(white_material);
-    camera.add_material(green_mat);
-
-    let mut scene = Scene::new();
-
-    let floor = Surface::new_vw(
-        Vector::new(0.0, -300.0, 0.0),
-        Vector::new(1.0, 0.0, 0.0),
-        Vector::new(0.0, 0.0, 1.0),
-        None,
-        None,
-        Vector::new(0.0, 1.0, 0.0)
-    );
-    scene.add_primitive(Box::new(floor), BLUE_MAT);
-
-    let back_wall = Surface::new_vw(
-        Vector::new(0.0, 0.0, -500.0),
-        Vector::new(-1.0, 0.0, 0.0),
-        Vector::new(0.0, 1.0, 0.0),
-        None,
-        None,
-        Vector::new(0.0, 0.0, 1.0)
-    );
-    scene.add_primitive(Box::new(back_wall), RED_MAT);
-
-    let left_wall = Surface::new_vw(
-        Vector::new(-300.0, 0.0, 0.0),
-        Vector::new(0.0, 0.0, 1.0),
-        Vector::new(0.0, 1.0, 0.0),
-        None,
-        None,
-        Vector::new(1.0, 0.0, 0.0)
-    );
-    scene.add_primitive(Box::new(left_wall), RED_MAT);
-
-    // let right_wall = Surface::new_vw(
-    //     Vector::new(300.0, 0.0, 0.0),
-    //     Vector::new(0.0, 0.0, -1.0),
-    //     Vector::new(0.0, 1.0, 0.0),
-    //     None,
-    //     None,
-    //     Vector::new(-1.0, 0.0, 0.0)
-    // );
-    // scene.add_primitive(Box::new(right_wall), RED_MAT);
-
-    let ceiling = Surface::new_vw(
-        Vector::new(0.0, 300.0, 0.0),
-        Vector::new(1.0, 0.0, 0.0),
-        Vector::new(0.0, 0.0, 1.0),
-        None,
-        None,
-        Vector::new(0.0, -1.0, 0.0)
-    );
-    scene.add_primitive(Box::new(ceiling), BLUE_MAT);
-
-    let sphere = Sphere::new(Vector::new(-125.0, -220.0, -100.0), 50.0);
-    scene.add_primitive(Box::new(sphere), BLUE_MAT);
-
-    let sphere2 = Sphere::new(Vector::new(-125.0, 100.0, -200.0), 50.0);
-    scene.add_primitive(Box::new(sphere2), RED_MAT);
-
-    let sphere3 = Sphere::new(Vector::new(0.0, -200.0, -240.0), 50.0);
-    scene.add_primitive(Box::new(sphere3), GREEN_MAT);
-
-    let ambient = Light::new_ambient(Color::white(), 0.11);
-    scene.add_light(ambient);
-
-    // let point = Light::new_point(
-    //     Vector::new(0.0, 0.0, -50.0),
-    //     Color::white(), 
-    //     (0.45, 0.0009, 0.00001));
-    // scene.add_light(point);
-
-    let area_light = RectangleAreaLight::new(
-        Vector::new(380.0, 0.0, -150.0),
-        Color::white(),
-        ((1.0 / 64.0), 0.002, 0.0001),
-        Vector::new(0.0, 0.0, -1.0),
-        Vector::new(0.0, 1.0, 0.0),
-        100.0,
-        100.0,
-        6.0,
-    );
-    scene.add_lights(area_light.get_lights());
+    let scene = reflection_refraction_scene();
 
     camera.perspective = true;
-    camera.aa_type = AntiAliasingType::Supersampling4x;
+    camera.aa_type = AntiAliasingType::None;
     camera.pinhole_distance = 320.0;
 
     //camera.render_scene(&scene, "output"); 
     camera.render_scene_multithreaded(scene, "multithread.png");
     camera.antialias_debug_buffer.save("aa_debug.png");
+}
+
+pub fn init_materials() -> Vec<Material> {
+    let mut mats = Vec::new();
+
+    let material_red_specular = Material::new_phong(
+        Color::new(0.9, 0.23, 0.11),
+        0.9,
+        128.0,
+    );
+    mats.push(material_red_specular);
+    let material_blue_matte = Material::new_phong(
+        Color::new(0.0, 0.1, 0.95),
+        0.1,
+        4.0,
+    );
+    mats.push(material_blue_matte);
+    let white_material = Material::new_phong(
+        Color::white(),
+        0.01,
+        4.0,
+    );
+    mats.push(white_material);
+    let green_mat = Material::new_phong(
+        Color::green() * 0.8,
+        0.8,
+        8.0,
+    );
+    mats.push(green_mat);
+    let black_mat = Material::new_phong(
+        Color::black(),
+        0.4,
+        2.0,
+    );
+    mats.push(black_mat);
+
+    let mirror_mat = Material::new_reflective(
+        Color::green(),
+        0.2,
+        32.0,
+        800.0,
+    );
+    mats.push(mirror_mat);
+
+    mats
 }

@@ -1,14 +1,14 @@
 use std::{ops};
 
 // used for partial_eq
-use float_cmp::{approx_eq, F64Margin};
+use float_cmp::{approx_eq, F32Margin};
 
 use super::Vector;
 
-// 4x4 matrix of f64, row-major
+// 4x4 matrix of f32, row-major
 #[derive(Debug, Clone, Copy)]
 pub struct Mat4 {
-    pub m: [[f64; 4]; 4],
+    pub m: [[f32; 4]; 4],
 }
 
 impl Mat4 {
@@ -59,14 +59,14 @@ impl Mat4 {
 
     // for information about this algorithm, see:
     // https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
-    pub fn rotate(&mut self, angle: f64, Vector { x, y, z, w}: Vector) {
+    pub fn rotate(&mut self, angle: f32, Vector { x, y, z, w}: Vector) {
         let mut result = Mat4::new();
         let mut axis = Vector::new(x, y, z);
 
         axis.normalize();
 
-        let sin = (angle as f64).sin();
-        let cos = (angle as f64).cos();
+        let sin = (angle as f32).sin();
+        let cos = (angle as f32).cos();
         let t = 1.0 - cos;
 
         result.m[0][0] = t * axis.x * axis.x + cos;
@@ -207,7 +207,7 @@ impl Mat4 {
 
         det = m[0][0] * inv[0] + m[0][1] * inv[4] + m[0][2] * inv[8] + m[0][3] * inv[12];
 
-        if det == 0f64 {
+        if det == 0f32 {
             return false
         }
 
@@ -239,7 +239,7 @@ impl Mat4 {
             out.push_str("[");
             for j in 0..4 {
 
-                if self.m[i][j] < 0f64 {
+                if self.m[i][j] < 0f32 {
                     out.push_str(&format!(" {:.3} ", self.m[i][j]));
                 } else {
                     out.push_str(&format!("  {:.3} ", self.m[i][j]));
@@ -253,10 +253,10 @@ impl Mat4 {
 }
 
 // multiply by scalar
-impl ops::Mul<f64> for Mat4 {
+impl ops::Mul<f32> for Mat4 {
     type Output = Mat4;
 
-    fn mul(self, other: f64) -> Mat4 {
+    fn mul(self, other: f32) -> Mat4 {
         let mut result = Mat4::new();
         for i in 0..4 {
             for j in 0..4 {
@@ -316,8 +316,8 @@ impl ops::SubAssign for Mat4 {
 }
 
 // multiply by scalar
-impl ops::MulAssign<f64> for Mat4 {
-    fn mul_assign(&mut self, other: f64) {
+impl ops::MulAssign<f32> for Mat4 {
+    fn mul_assign(&mut self, other: f32) {
         for i in 0..4 {
             for j in 0..4 {
                 self.m[i][j] *= other;
@@ -364,7 +364,7 @@ impl PartialEq for Mat4 {
         for i in 0..4 {
             for j in 0..4 {
                 // using comparison with epsilon + units of least precision
-                if !approx_eq!(f64, self.m[i][j], other.m[i][j], F64Margin { epsilon: f64::EPSILON, ulps: 4 }) {
+                if !approx_eq!(f32, self.m[i][j], other.m[i][j], F32Margin { epsilon: f32::EPSILON, ulps: 4 }) {
                     return false;
                 }
             }

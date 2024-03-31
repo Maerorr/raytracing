@@ -1,16 +1,16 @@
 use std::ops;
-use float_cmp::{approx_eq, F64Margin};
+use float_cmp::{approx_eq, F32Margin};
 
 use super::{Mat4, Vector};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Quaternion {
-    pub real: f64,
+    pub real: f32,
     pub ivec: Vector,
 }
 
 impl Quaternion {
-    pub fn new(real: f64, ivec: Vector) -> Quaternion {
+    pub fn new(real: f32, ivec: Vector) -> Quaternion {
         Quaternion { real, ivec }
     }
 
@@ -18,7 +18,7 @@ impl Quaternion {
         Quaternion::new(1.0, Vector::new(0.0, 0.0, 0.0))
     }
 
-    pub fn rotate(&mut self, angle: f64, Vector { x, y, z, w}: Vector) {
+    pub fn rotate(&mut self, angle: f32, Vector { x, y, z, w}: Vector) {
         let angle = angle * 0.5;
         let sin = angle.sin();
         let cos = angle.cos();
@@ -75,7 +75,7 @@ impl Quaternion {
         let mut quat = self.clone();
         quat.conjugate();
         let divisor = self.real * self.real + self.ivec.dot(&self.ivec);
-        if approx_eq!(f64, divisor, 0.0, F64Margin { epsilon: f64::EPSILON, ulps: 4 }) {
+        if approx_eq!(f32, divisor, 0.0, F32Margin { epsilon: f32::EPSILON, ulps: 4 }) {
             print!("Warning: division by zero. Quaternion values were not altered.");
             return;
         }
@@ -92,7 +92,7 @@ impl Quaternion {
         *self *= inv;
     }
 
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         (self.real * self.real + self.ivec.dot(&self.ivec)).sqrt()
     }
 
@@ -100,7 +100,7 @@ impl Quaternion {
         self.ivec *= -1.0;
     }
 
-    pub fn dot(&mut self, other: &Quaternion) -> f64 {
+    pub fn dot(&mut self, other: &Quaternion) -> f32 {
         (self.real * other.real) + self.ivec.dot(&other.ivec)
     }
 
@@ -153,10 +153,10 @@ impl ops::SubAssign<Quaternion> for Quaternion {
 
 // * operator overload
 // scalar * quaternion
-impl ops::Mul<f64> for Quaternion {
+impl ops::Mul<f32> for Quaternion {
     type Output = Quaternion;
 
-    fn mul(self, scalar: f64) -> Quaternion {
+    fn mul(self, scalar: f32) -> Quaternion {
         Quaternion {
             real: self.real * scalar,
             ivec: self.ivec * scalar,
@@ -166,8 +166,8 @@ impl ops::Mul<f64> for Quaternion {
 
 // *= operator overload
 // quaternion *= scalar
-impl ops::MulAssign<f64> for Quaternion {
-    fn mul_assign(&mut self, scalar: f64) {
+impl ops::MulAssign<f32> for Quaternion {
+    fn mul_assign(&mut self, scalar: f32) {
         self.real *= scalar;
         self.ivec *= scalar;
     }
@@ -229,10 +229,10 @@ impl ops::DivAssign for Quaternion {
 
 // / operator overload
 // quaternion / scalar
-impl ops::Div<f64> for Quaternion {
+impl ops::Div<f32> for Quaternion {
     type Output = Quaternion;
 
-    fn div(self, scalar: f64) -> Quaternion {
+    fn div(self, scalar: f32) -> Quaternion {
         Quaternion {
             real: self.real / scalar,
             ivec: self.ivec / scalar,
@@ -241,8 +241,8 @@ impl ops::Div<f64> for Quaternion {
 }
 
 // /= operator overload
-impl ops::DivAssign<f64> for Quaternion {
-    fn div_assign(&mut self, scalar: f64) {
+impl ops::DivAssign<f32> for Quaternion {
+    fn div_assign(&mut self, scalar: f32) {
         self.real /= scalar;
         self.ivec /= scalar;
     }
@@ -250,10 +250,10 @@ impl ops::DivAssign<f64> for Quaternion {
 
 impl PartialEq for Quaternion {
     fn eq(&self, other: &Quaternion) -> bool {
-        approx_eq!(f64, self.real, other.real, F64Margin { epsilon: f64::EPSILON, ulps: 4 }) &&
-        approx_eq!(f64, self.ivec.x, other.ivec.x, F64Margin { epsilon: f64::EPSILON, ulps: 4 }) &&
-        approx_eq!(f64, self.ivec.y, other.ivec.y, F64Margin { epsilon: f64::EPSILON, ulps: 4 }) &&
-        approx_eq!(f64, self.ivec.z, other.ivec.z, F64Margin { epsilon: f64::EPSILON, ulps: 4 })
+        approx_eq!(f32, self.real, other.real, F32Margin { epsilon: f32::EPSILON, ulps: 4 }) &&
+        approx_eq!(f32, self.ivec.x, other.ivec.x, F32Margin { epsilon: f32::EPSILON, ulps: 4 }) &&
+        approx_eq!(f32, self.ivec.y, other.ivec.y, F32Margin { epsilon: f32::EPSILON, ulps: 4 }) &&
+        approx_eq!(f32, self.ivec.z, other.ivec.z, F32Margin { epsilon: f32::EPSILON, ulps: 4 })
     }
 }
 
@@ -343,7 +343,7 @@ mod test {
         println!("Let's normalize it");
         q.normalize();
         println!("now it's 'length' should be 1: {:.4}", q.length());
-        assert!(approx_eq!(f64, q.length(), 1.0, F64Margin { epsilon: f64::EPSILON, ulps: 4 }));
+        assert!(approx_eq!(f32, q.length(), 1.0, F32Margin { epsilon: f32::EPSILON, ulps: 4 }));
     }
 
     #[test]

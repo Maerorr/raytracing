@@ -1,4 +1,4 @@
-use float_cmp::{approx_eq, F64Margin};
+use float_cmp::{approx_eq};
 
 use crate::{geometry::{Line, Sphere, Surface, Triangle}};
 
@@ -12,10 +12,9 @@ pub trait IntersectionPrimitive {
 impl IntersectionPrimitive for Surface {
     // implementation modified from: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
     fn intersect(&self, ray: &Line) -> RayCastHit {
-        let surface = self;
-
         let denom = self.normal.dot(&ray.direction);
-        if approx_eq!(f64, denom, 0.0, F64Margin::default()) {
+
+        if denom.abs() < 0.0001 {
             return RayCastHit::new(None);
         }
 
@@ -25,11 +24,13 @@ impl IntersectionPrimitive for Surface {
         let angle = ray.direction.angle_radians(&self.normal);
 
         if t > 0.0 {
-            let ts = self.get_t_s_from_point(&intersection);
+            let ts = self.get_t_s_from_point(&intersection); // this works correct
+        
             if self.point_on_surface(&ts.0, &ts.1).is_none() {
                 return RayCastHit::new(None);
             }
-            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal)
+            let distance = (intersection - ray.point).length();
+            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance)
             
         } else {
             RayCastHit::new(None)
@@ -40,8 +41,7 @@ impl IntersectionPrimitive for Surface {
 impl IntersectionPrimitive for Sphere {
     // geometric solution from: https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-sphere-intersection.html
     fn intersect(&self, ray: &Line) -> RayCastHit {
-        let r2 = self.radius * self.radius;
-
+        let r2 = self.get_radius_squared();
         let l = self.center - ray.point;
         let tca = l.dot(&ray.direction);
         if tca < 0.0 {
@@ -69,7 +69,8 @@ impl IntersectionPrimitive for Sphere {
         normal.normalize();
 
         let angle = ray.direction.angle_radians(&normal);
-        RayCastHit::new(Some((intersection, angle))).with_normal(normal)
+        let distance = (intersection - ray.point).length();
+        RayCastHit::new(Some((intersection, angle))).with_normal(normal).with_distance(distance)
     }
 }
 
@@ -107,7 +108,8 @@ impl IntersectionPrimitive for Triangle {
         if t > 0.00001 {
             let intersection = ray.point_on_line(&t);
             let angle = ray.direction.angle_radians(&self.normal);
-            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal)
+            let distance = (intersection - ray.point).length();
+            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance)
         } else {
             //println!("t is out of bounds");
             RayCastHit::new(None)

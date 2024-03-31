@@ -2,13 +2,13 @@ use std::{fmt::{self, Display, Formatter}, ops::{Add, AddAssign, Div, DivAssign,
 
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
-    pub r: f64,
-    pub g: f64,
-    pub b: f64,
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
 }
 
 impl Color {
-    pub fn new(r: f64, g: f64, b: f64) -> Color {
+    pub fn new(r: f32, g: f32, b: f32) -> Color {
         Color { r, g, b }
     }
 
@@ -22,7 +22,7 @@ impl Color {
         (r, g, b)
     }
 
-    pub fn blend(&mut self, other: &Color, amount: f64) {
+    pub fn blend(&mut self, other: &Color, amount: f32) {
         self.r = self.r * (1.0 - amount) + other.r * amount;
         self.g = self.g * (1.0 - amount) + other.g * amount;
         self.b = self.b * (1.0 - amount) + other.b * amount;
@@ -108,10 +108,10 @@ impl Mul for Color {
     }
 }
 
-impl Mul<f64> for Color {
+impl Mul<f32> for Color {
     type Output = Color;
 
-    fn mul(self, other: f64) -> Color {
+    fn mul(self, other: f32) -> Color {
         Color {
             r: self.r * other,
             g: self.g * other,
@@ -119,8 +119,8 @@ impl Mul<f64> for Color {
         }
     }
 }
-impl MulAssign<f64> for Color {
-    fn mul_assign(&mut self, other: f64) {
+impl MulAssign<f32> for Color {
+    fn mul_assign(&mut self, other: f32) {
         self.r *= other;
         self.g *= other;
         self.b *= other;
@@ -139,10 +139,10 @@ impl Div for Color {
     }
 }
 
-impl Div<f64> for Color {
+impl Div<f32> for Color {
     type Output = Color;
 
-    fn div(self, other: f64) -> Color {
+    fn div(self, other: f32) -> Color {
         if other == 0.0 {
             return self;
         }
@@ -154,8 +154,8 @@ impl Div<f64> for Color {
     }
 }
 
-impl DivAssign<f64> for Color {
-    fn div_assign(&mut self, other: f64) {
+impl DivAssign<f32> for Color {
+    fn div_assign(&mut self, other: f32) {
         if other == 0.0 {
             return;
         }

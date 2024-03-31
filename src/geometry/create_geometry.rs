@@ -2,7 +2,7 @@ use crate::{math::intersection::IntersectionPrimitive, Vector};
 
 use super::{Sphere, Surface};
 
-pub fn create_box_surfaces(center: Vector, size: f64) -> Vec<Surface> {
+pub fn create_box_surfaces(center: Vector, size: f32) -> Vec<Surface> {
     let front = Surface::new_vw(
         Vector::new(center.x, center.y, center.z + size / 2.0),
         Vector::new(1.0, 0.0, 0.0),
@@ -55,7 +55,7 @@ pub fn create_box_surfaces(center: Vector, size: f64) -> Vec<Surface> {
     ]    
 }
 
-pub fn create_box_primitive(center: Vector, size: f64) -> Vec<Box<dyn IntersectionPrimitive>> {
+pub fn create_box_primitive(center: Vector, size: f32) -> Vec<Box<dyn IntersectionPrimitive>> {
     let mut scene: Vec<Box<dyn IntersectionPrimitive>> = Vec::new();
     let mut cube = create_box_surfaces(center, size);
     for surface in cube.iter() {

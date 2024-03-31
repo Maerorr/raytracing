@@ -1,20 +1,20 @@
 use std::{ops};
 // used for comparing floats
-use float_cmp::{approx_eq, F64Margin};
+use float_cmp::{approx_eq, F32Margin};
 use super::{Mat4, Quaternion};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    pub w: f64,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 
 impl Vector {
     
     /// Constructor
-    pub fn new(x: f64, y: f64, z: f64) -> Vector {
+    pub fn new(x: f32, y: f32, z: f32) -> Vector {
         Vector { x: x, y: y, z: z , w: 1.0}
     }
 
@@ -30,7 +30,7 @@ impl Vector {
     }
 
     /// dot product, multiplication of all components
-    pub fn dot(&self, other: &Vector) -> f64 {
+    pub fn dot(&self, other: &Vector) -> f32 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
@@ -45,7 +45,7 @@ impl Vector {
     }
     
     /// Returns the angle between two vectors in **radians**
-    pub fn angle_radians(&self, other: &Vector) -> f64 {
+    pub fn angle_radians(&self, other: &Vector) -> f32 {
         // get the dot product
         let dot = self.dot(other);
         // calculate lengths of both vectors
@@ -57,16 +57,16 @@ impl Vector {
         cos.acos()
     }
 
-    pub fn angle_degrees(&self, other: &Vector) -> f64 {
-        self.angle_radians(other) * 180.0 / std::f64::consts::PI
+    pub fn angle_degrees(&self, other: &Vector) -> f32 {
+        self.angle_radians(other) * 180.0 / std::f32::consts::PI
     }
 
     /// Returns the length of a vector
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
 
-    pub fn length_squared(&self) -> f64 {
+    pub fn length_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
     /// Normalizes a vector, which means it makes it's length equal to 1
@@ -107,7 +107,7 @@ impl Vector {
         self.z = vprime.z;
     }
 
-    pub fn distance(&self, other: &Vector) -> f64 {
+    pub fn distance(&self, other: &Vector) -> f32 {
         ((other.x - self.x).powi(2) + (other.y - self.y).powi(2) + (other.z - self.z).powi(2)).sqrt()
     }
 
@@ -189,10 +189,10 @@ impl ops::SubAssign<Vector> for Vector {
 
 // * operator overload
 // scalar multiply ([vector] * scalar)
-impl ops::Mul<f64> for Vector {
+impl ops::Mul<f32> for Vector {
     type Output = Vector;
 
-    fn mul(self, scalar: f64) -> Vector {
+    fn mul(self, scalar: f32) -> Vector {
         Vector {
             x: self.x * scalar,
             y: self.y * scalar,
@@ -215,8 +215,8 @@ impl ops::Mul<Mat4> for Vector {
     }
 }
 
-impl ops::MulAssign<f64> for Vector {
-    fn mul_assign(&mut self, scalar: f64) {
+impl ops::MulAssign<f32> for Vector {
+    fn mul_assign(&mut self, scalar: f32) {
         self.x *= scalar;
         self.y *= scalar;
         self.z *= scalar;
@@ -226,10 +226,10 @@ impl ops::MulAssign<f64> for Vector {
 // / operator overload
 // vector scalar division ([vector] / scalar)
 // in case of division by zero, return the original vector
-impl ops::Div<f64> for Vector {
+impl ops::Div<f32> for Vector {
     type Output = Vector;
 
-    fn div(self, scalar: f64) -> Vector {
+    fn div(self, scalar: f32) -> Vector {
         if scalar == 0.0 {
             println!("Warning: division by zero. Vector values were not altered.");
             return self;
@@ -245,8 +245,8 @@ impl ops::Div<f64> for Vector {
     }
 }
 
-impl ops::DivAssign<f64> for Vector {
-    fn div_assign(&mut self, scalar: f64) {
+impl ops::DivAssign<f32> for Vector {
+    fn div_assign(&mut self, scalar: f32) {
         if scalar == 0.0 {
             print!("Warning: division by zero. Vector values were not altered.");
         } else
@@ -274,9 +274,9 @@ impl ops::Neg for Vector {
 impl PartialEq for Vector {
     fn eq(&self, other: &Vector) -> bool {
         // use approx_eq!
-        approx_eq!(f64, self.x, other.x, F64Margin { epsilon: f64::EPSILON, ulps: 4 }) &&
-        approx_eq!(f64, self.y, other.y, F64Margin { epsilon: f64::EPSILON, ulps: 4 }) &&
-        approx_eq!(f64, self.z, other.z, F64Margin { epsilon: f64::EPSILON, ulps: 4 })
+        approx_eq!(f32, self.x, other.x, F32Margin { epsilon: f32::EPSILON, ulps: 4 }) &&
+        approx_eq!(f32, self.y, other.y, F32Margin { epsilon: f32::EPSILON, ulps: 4 }) &&
+        approx_eq!(f32, self.z, other.z, F32Margin { epsilon: f32::EPSILON, ulps: 4 })
         //self.x == other.x && self.y == other.y && self.z == other.z
     }
 }

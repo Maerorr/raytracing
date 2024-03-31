@@ -1,4 +1,4 @@
-use float_cmp::{approx_eq, F64Margin};
+use float_cmp::{approx_eq, F32Margin};
 
 
 use crate::math::{RayCastHit, Vector};
@@ -48,25 +48,25 @@ impl Line {
         }
     }
 
-    pub fn angle_degrees(&self, other: &Line) -> f64 {
+    pub fn angle_degrees(&self, other: &Line) -> f32 {
         let angle = self.direction.angle_degrees(&other.direction);
         angle
     }
 
-    pub fn angle_radians(&self, other: &Line) -> f64 {
+    pub fn angle_radians(&self, other: &Line) -> f32 {
         let angle = self.direction.angle_radians(&other.direction);
         angle
     }
 
     // returns the expression p + tv
-    pub fn point_on_line(&self, t: &f64) -> Vector {
+    pub fn point_on_line(&self, t: &f32) -> Vector {
         self.point + self.direction * *t
     }
 
     // Returns the point of intersection if they intersect. Otherwise returns None.
     pub fn intersection_surface(&self, surface: &Surface) -> RayCastHit {
         let parallel_check = self.direction.dot(&surface.normal);
-        if approx_eq!(f64, parallel_check, 0.0, F64Margin::default()) {
+        if parallel_check < 0.0001 {
             RayCastHit::new(None)
         } else {
             let t = ((surface.normal * -1.0).dot(&(self.point - surface.point)))
@@ -86,7 +86,7 @@ impl Line {
 
     // pub fn intersection_object(&self, obj: &Object, cam_pos: &Vector, bfc: &bool) -> RayCastHit {
     //     let mut closest_intersection: RayCastHit = RayCastHit::new(None);
-    //     let mut closest_distance: f64 = 0.0;
+    //     let mut closest_distance: f32 = 0.0;
 
     //     for surface in &obj.surfaces {
     //         // intersection with each surface
@@ -125,4 +125,3 @@ impl Line {
         format!("Point: {}, Direction: {}", self.point.to_string(), self.direction.to_string())
     }
 }
-

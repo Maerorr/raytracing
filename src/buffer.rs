@@ -37,8 +37,8 @@ impl Buffer {
         for y in 0..self.height {
             for x in 0..self.width {
                 // make reds rise from left to right
-                let r = (x as f64 / size as f64).floor() / x_size as f64;
-                let g = (y as f64 / size as f64).floor() / y_size as f64;
+                let r = (x as f32 / size as f32).floor() / x_size as f32;
+                let g = (y as f32 / size as f32).floor() / y_size as f32;
                 let b = 0.0;
                 let color = Color::new(r, g, b);
                 self.set_pixel(x, y, color);
@@ -72,7 +72,7 @@ impl Buffer {
         }
     }
 
-    pub fn blend_pixel(&mut self, x: u32, y: u32, color: Color, amount: f64) {
+    pub fn blend_pixel(&mut self, x: u32, y: u32, color: Color, amount: f32) {
         if x < self.width && y < self.height {
             let index = (x + (self.height - y - 1) * self.width) as usize;
             self.data[index].blend(&color, amount);

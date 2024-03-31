@@ -6,8 +6,8 @@ pub struct LightCalculationData {
     pub normal: Vector,
     pub view_dir: Vector,
     pub base_color: Color,
-    pub shininess: f64,
-    pub specular_amount: f64,
+    pub shininess: f32,
+    pub specular_amount: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -21,13 +21,13 @@ pub struct Light {
     pub light_type: LightType,
     pub position: Vector,
     pub color: Color,
-    pub strength: f64,
+    pub strength: f32,
                    // const, lin, quad
-    pub attenuation: (f64, f64, f64),
+    pub attenuation: (f32, f32, f32),
 }
 
 impl Light {
-    pub fn new(light_type: LightType, position: Vector, color: Color, strength: f64, attenuation: (f64, f64, f64)) -> Light {
+    pub fn new(light_type: LightType, position: Vector, color: Color, strength: f32, attenuation: (f32, f32, f32)) -> Light {
         Light {
             light_type,
             position,
@@ -37,7 +37,7 @@ impl Light {
         }
     }
 
-    pub fn new_ambient(color: Color, strength: f64) -> Light {
+    pub fn new_ambient(color: Color, strength: f32) -> Light {
         Light {
             light_type: LightType::Ambient,
             position: Vector::new(0.0, 0.0, 0.0),
@@ -47,7 +47,7 @@ impl Light {
         }
     }
 
-    pub fn new_point(position: Vector, color: Color, attenuation: (f64, f64, f64)) -> Light {
+    pub fn new_point(position: Vector, color: Color, attenuation: (f32, f32, f32)) -> Light {
         Light {
             light_type: LightType::Point,
             position,
@@ -90,7 +90,7 @@ impl Light {
 pub struct RectangleAreaLight {
     pub position: Vector,
     pub color: Color,
-    pub attenuation: (f64, f64, f64),
+    pub attenuation: (f32, f32, f32),
     pub lights: Vec<Light>,
 }
 
@@ -98,16 +98,16 @@ impl RectangleAreaLight {
     pub fn new(
         position: Vector, 
         color: Color, 
-        attenuation: (f64, f64, f64), 
+        attenuation: (f32, f32, f32), 
         v: Vector, w: Vector, 
-        v_size: f64, w_size: f64, 
-        light_density: f64) -> RectangleAreaLight {
+        v_size: f32, w_size: f32, 
+        light_density: f32) -> RectangleAreaLight {
         let mut lights = Vec::new();
         let v_step = v_size / light_density;
         let w_step = w_size / light_density;
         for i in 0..(light_density as i32) {
             for j in 0..(light_density as i32) {
-                let light_pos = position + v * (i as f64) * v_step + w * (j as f64) * w_step;
+                let light_pos = position + v * (i as f32) * v_step + w * (j as f32) * w_step;
                 lights.push(Light::new_point(light_pos, color, attenuation));
             }
         }

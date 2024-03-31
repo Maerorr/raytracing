@@ -5,9 +5,9 @@ use crate::math::{Vector, Quaternion};
 pub struct Surface {
     pub point: Vector,
     pub v: Option<Vector>,
-    pub max_v: Option<(f64, f64)>,
+    pub max_v: Option<(f32, f32)>,
     pub w: Option<Vector>,
-    pub max_w: Option<(f64, f64)>,
+    pub max_w: Option<(f32, f32)>,
     pub normal: Vector,
 }
 
@@ -28,19 +28,19 @@ impl Surface {
     }
 
     // create surface from point and two vectors
-    pub fn new_vw(point: Vector, v: Vector, w: Vector, max_v: Option<(f64, f64)>, max_w: Option<(f64, f64)>, normal: Vector) -> Surface {
+    pub fn new_vw(point: Vector, v: Vector, w: Vector, max_v: Option<(f32, f32)>, max_w: Option<(f32, f32)>, normal: Vector) -> Surface {
         // let mut normal = v.cross(&w);
         // normal.normalize();
         Surface { point, v: Some(v), w: Some(w), max_v: max_v, max_w: max_w, normal}
     }
 
     // return the distance from the surface to a point
-    pub fn distance(&self, point: &Vector) -> f64 {
+    pub fn distance(&self, point: &Vector) -> f32 {
         let v = *point - self.point;
         v.dot(&self.normal)
     }
 
-    pub fn get_t_s_from_point(&self, point: &Vector) -> (f64, f64) {
+    pub fn get_t_s_from_point(&self, point: &Vector) -> (f32, f32) {
         let v = *point - self.point;
         let t = v.dot(&self.v.unwrap()) / self.v.unwrap().length_squared();
         let s = v.dot(&self.w.unwrap()) / self.w.unwrap().length_squared();
@@ -57,7 +57,7 @@ impl Surface {
     }
 
     // returns expression Q + tv + sw. Returns None if surface was not defined with v and w. Or if t or s are outside the bounds of the surface.
-    pub fn point_on_surface(&self, t: &f64, s: &f64) -> Option<Vector> {
+    pub fn point_on_surface(&self, t: &f32, s: &f32) -> Option<Vector> {
         if self.v.is_some() && self.w.is_some() {
             if self.max_v.is_none() || self.max_w.is_none() {
                 //ignore bounds
@@ -89,7 +89,7 @@ impl Surface {
         self.normal.rotate_by_quaternion(&q);
     }
 
-    pub fn scale(&mut self, s: &f64) {
+    pub fn scale(&mut self, s: &f32) {
         self.point.x *= s;
         self.point.y *= s;
         self.point.z *= s;
