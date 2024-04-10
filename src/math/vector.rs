@@ -1,4 +1,4 @@
-use std::{ops};
+use std::{mem::swap, ops};
 // used for comparing floats
 use float_cmp::{approx_eq, F32Margin};
 use super::{Mat4, Quaternion};
@@ -77,7 +77,7 @@ impl Vector {
         self.z /= length;
     }
 
-    pub fn _normalize(&mut self) -> Vector {
+    pub fn _normalize(&self) -> Vector {
         let length = self.length();
         Vector {
             x: self.x / length,
@@ -140,6 +140,31 @@ impl Vector {
         let mut out = *self - *normal * 2.0 * dot;
         out.normalize();
         out
+    }
+
+    pub fn refract(&self, n: &Vector, eta: f32) -> Vector {
+        let i = self._normalize();
+        let mut n_dot_i = n.dot(self);
+        let eta_air = 1.0;
+        let eta_material = eta;
+        let eta;
+        let mut n = *n;
+        // if the cos is less than zero, we're leaving the refractive material and going to air
+        if n_dot_i < 0.0 {
+            n_dot_i = -n_dot_i;
+            n = -n;
+            eta = eta_air / eta_material;
+        } else {
+            eta = eta_material / eta_air;
+        }
+
+        // code like in GLSL refract function
+        let k = 1.0 - eta * eta * (1.0 - n_dot_i * n_dot_i);
+        if k < 0.0 {
+            Vector::new(0.0, 0.0, 0.0)
+        } else {
+            i * eta - n * (eta * n_dot_i - k.sqrt())
+        }
     }
 }
 

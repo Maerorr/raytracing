@@ -58,12 +58,11 @@ const WHITE_MAT: usize = 2;
 const GREEN_MAT: usize = 3;
 const BLACK_MAT: usize = 4;
 const MIRROR_MAT: usize = 5;
+const GLASS_MAT: usize = 6;
 
 fn main() {
-
-
     let mut camera = Camera::new(
-        Vector::new(0.0, 0.0, 0.0),
+        Vector::new(0.0, -50.0, 100.0),
         Vector::new(0.0, 0.0, -1.0),
         RENDER_WIDTH, RENDER_HEIGHT,
         Vector::new(0.0, 1.0, 0.0)
@@ -77,8 +76,8 @@ fn main() {
     let scene = reflection_refraction_scene();
 
     camera.perspective = true;
-    camera.aa_type = AntiAliasingType::None;
-    camera.pinhole_distance = 320.0;
+    camera.aa_type = AntiAliasingType::Supersampling4x;
+    camera.pinhole_distance = 390.0;
 
     //camera.render_scene(&scene, "output"); 
     camera.render_scene_multithreaded(scene, "multithread.png");
@@ -118,14 +117,18 @@ pub fn init_materials() -> Vec<Material> {
         2.0,
     );
     mats.push(black_mat);
-
     let mirror_mat = Material::new_reflective(
         Color::green(),
         0.2,
         32.0,
-        800.0,
+        10000.0,
     );
     mats.push(mirror_mat);
+    let glass_mat = Material::new_refractive(
+        Color::white(),
+        1.66,
+    );
+    mats.push(glass_mat);
 
     mats
 }

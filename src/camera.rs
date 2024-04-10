@@ -7,7 +7,7 @@ use crate::buffer::Buffer;
 use crate::color::Color;
 use crate::geometry::Line;
 use crate::light::{LightCalculationData, LightType};
-use crate::material::{self, Material};
+use crate::material::{self, Material, MaterialType};
 use crate::math::{RayCastHit, Vector};
 use crate::scene::Scene;
 
@@ -584,37 +584,48 @@ pub fn p_shoot_ray(ray: &Line, scene: &Scene, materials: &Vec<Material>, max_dis
             specular_amount: material.specular_amount,
         };
 
-        for light in scene.lights.iter() {
-            if light.light_type == LightType::Ambient {
-                let light_color = light.calculate_lighting(&lighting_data);
-                color += light_color;
-                continue;
-            } else {
-                // shot ray into the light
-                let light_dir = (light.position - intersection)._normalize();
-                let line_pos = intersection + light_dir * 0.01;
-                let light_ray = Line::new(line_pos, light_dir);
-                let distance = intersection.distance(&light.position);
-                let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
-
-                if !shadowed {
-                    let light_color = light.calculate_lighting(&lighting_data);
-                    color += light_color;
+        match material.material_type {
+            MaterialType::Phong => {
+                for light in scene.lights.iter() {
+                    if light.light_type == LightType::Ambient {
+                        let light_color = light.calculate_lighting(&lighting_data);
+                        color += light_color;
+                        continue;
+                    } else {
+                        // shot ray into the light
+                        let light_dir = (light.position - intersection)._normalize();
+                        let line_pos = intersection + light_dir * 0.01;
+                        let light_ray = Line::new(line_pos, light_dir);
+                        let distance = intersection.distance(&light.position);
+                        let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
+        
+                        if !shadowed {
+                            let light_color = light.calculate_lighting(&lighting_data);
+                            color += light_color;
+                        }
+                    }
                 }
-            }
-        }
-
-        if material.material_type == crate::material::MaterialType::Reflective {
-            let reflected_dir = ray.direction.reflect(&normal);
-            let reflected_ray_start = intersection + reflected_dir * 0.1;
-            let reflected_ray = Line::new(reflected_ray_start, reflected_dir);
-            let max_dist = (material.max_bounce_depth - closest_intersection.distance - maxd).max(0.0);
-            let reflected_color = p_shoot_ray(&reflected_ray, scene, materials, Some(max_dist));
-            if reflected_color.is_some() {
-                color = color * reflected_color.unwrap();
-            } else {
-                color *= 0.2;
-            }
+            },
+            MaterialType::Reflective => {
+                let reflected_dir = ray.direction.reflect(&normal);
+                let reflected_ray_start = intersection + reflected_dir * 0.1;
+                let reflected_ray = Line::new(reflected_ray_start, reflected_dir);
+                let max_dist = (material.max_bounce_depth - closest_intersection.distance - maxd).max(0.0);
+                let reflected_color = p_shoot_ray(&reflected_ray, scene, materials, Some(max_dist));
+                if reflected_color.is_some() {
+                    color = reflected_color.unwrap();
+                }
+            },
+            MaterialType::Refractive => {
+                let refracted_dir = ray.direction.refract(&normal, material.refractive_index);
+                let refracted_ray_start = intersection + refracted_dir * 0.1;
+                let refracted_ray = Line::new(refracted_ray_start, refracted_dir);
+                let max_dist = (material.max_bounce_depth - closest_intersection.distance - maxd).max(0.0);
+                let refracted_color = p_shoot_ray(&refracted_ray, scene, materials, None);
+                if refracted_color.is_some() {
+                    color = refracted_color.unwrap();
+                }
+            },
         }
 
         Some(color)

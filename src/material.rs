@@ -14,6 +14,7 @@ pub struct Material {
     pub shininess: f32,
     pub material_type: MaterialType,
     pub max_bounce_depth: f32,
+    pub refractive_index: f32,
 }
 
 impl Material {
@@ -24,6 +25,7 @@ impl Material {
             shininess,
             material_type,
             max_bounce_depth,
+            refractive_index: 1.0,
         }
     }
 
@@ -34,6 +36,7 @@ impl Material {
             shininess,
             material_type: MaterialType::Phong,
             max_bounce_depth: 0.0,
+            refractive_index: 1.0,
         }
     }
 
@@ -44,6 +47,18 @@ impl Material {
             shininess,
             material_type: MaterialType::Reflective,
             max_bounce_depth,
+            refractive_index: 1.0,
+        }
+    }
+
+    pub fn new_refractive(base_color: Color, refractive_index: f32) -> Material {
+        Material {
+            base_color,
+            specular_amount: 1.0,
+            shininess: 1.0,
+            material_type: MaterialType::Refractive,
+            max_bounce_depth: 0.0,
+            refractive_index,
         }
     }
 }
