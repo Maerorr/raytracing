@@ -178,13 +178,13 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
     mat_count += 1;
 
     let sphere_roughness05 = Sphere::new(Vector::new(-300.0, 300.0, -900.0), 200.0);
-    scene.add_primitive(Box::new(sphere_roughness05), mat_count + 2);
+    scene.add_primitive(Box::new(sphere_roughness05), mat_count);
     let material_roughness05 = Material::new_pbr(Color::red(), 0.3, 0.5);
     materials.push(material_roughness05);
     mat_count += 1;
 
     let sphere_roughness075 = Sphere::new(Vector::new(300.0, 300.0, -900.0), 200.0);
-    scene.add_primitive(Box::new(sphere_roughness075), mat_count + 3);
+    scene.add_primitive(Box::new(sphere_roughness075), mat_count);
     let material_roughness075 = Material::new_pbr(Color::red(), 0.3, 0.75);
     materials.push(material_roughness075);
     mat_count += 1;
@@ -195,8 +195,9 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
     let pos = Vector::new(0.0, 0.0, -500.0);
     let sphere = Sphere::new(pos, 100.0);
     scene.add_primitive(Box::new(sphere), mat_count);
-    let material = Material::new_pbr(Color::green(), 0.7, 0.5);
+    let material = Material::new_pbr(Color::green(), 1.0, 0.4);
     materials.push(material);
+    mat_count += 1;
 
     let blue_mat = Material::new_pbr(
         Color::blue(),
