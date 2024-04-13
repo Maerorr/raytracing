@@ -910,6 +910,7 @@ dependencies = [
  "cstr",
  "float-cmp",
  "image",
+ "rand",
  "raylib",
 ]
 

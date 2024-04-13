@@ -8,7 +8,7 @@ use image::{DynamicImage, ImageBuffer};
 use light::{Light, RectangleAreaLight};
 use material::Material;
 use math::{Quaternion, RayCastHit, Vector};
-use presentation_scenes::{reflection_refraction_scene, shading_scene};
+use presentation_scenes::{pbr_scene, reflection_refraction_scene, shading_scene};
 use scene::Scene;
 
 use crate::math::{as_degrees, as_radians, IntersectionPrimitive};
@@ -61,6 +61,12 @@ const MIRROR_MAT: usize = 5;
 const GLASS_MAT: usize = 6;
 
 fn main() {
+
+    for _ in 0..10 {
+        let v = Vector::random(-0.5, 0.5);
+        println!("{}", v.to_string());
+    }
+
     let mut camera = Camera::new(
         Vector::new(0.0, -50.0, 100.0),
         Vector::new(0.0, 0.0, -1.0),
@@ -68,12 +74,17 @@ fn main() {
         Vector::new(0.0, 1.0, 0.0)
     );
 
-    let materials = init_materials();
+    // let materials = init_materials();
+    // for mat in materials {
+    //     camera.add_material(mat);
+    // }
+
+    //let scene = reflection_refraction_scene();
+    let (scene, materials) = pbr_scene();
+
     for mat in materials {
         camera.add_material(mat);
     }
-
-    let scene = reflection_refraction_scene();
 
     camera.perspective = true;
     camera.aa_type = AntiAliasingType::Supersampling4x;

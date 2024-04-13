@@ -1,5 +1,7 @@
 use std::{fmt::{self, Display, Formatter}, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}};
 
+use crate::math::Vector;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub r: f32,
@@ -47,11 +49,27 @@ impl Color {
     pub fn blue() -> Color {
         Color::new(0.0, 0.0, 1.0)
     }
+
+    pub fn to_vector(&self) -> Vector {
+        Vector::new(self.r, self.g, self.b)
+    }
+
+    pub fn gamma_correction(&mut self, gamma: f32) {
+        self.r = self.r.powf(1.0 / gamma);
+        self.g = self.g.powf(1.0 / gamma);
+        self.b = self.b.powf(1.0 / gamma);
+    }
 }
 
 impl Default for Color {
     fn default() -> Color {
         Color::new(0.0, 0.0, 0.0)
+    }
+}
+
+impl From<Vector> for Color {
+    fn from(vector: Vector) -> Color {
+        Color::new(vector.x, vector.y, vector.z)
     }
 }
 
@@ -124,6 +142,14 @@ impl MulAssign<f32> for Color {
         self.r *= other;
         self.g *= other;
         self.b *= other;
+    }
+}
+
+impl MulAssign<Color> for Color {
+    fn mul_assign(&mut self, other: Color) {
+        self.r *= other.r;
+        self.g *= other.g;
+        self.b *= other.b;
     }
 }
 
