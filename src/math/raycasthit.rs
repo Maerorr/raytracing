@@ -6,6 +6,7 @@ pub struct RayCastHit {
     pub normal: Option<Vector>,
     pub distance: f32,
     pub pos_on_screen: (i32, i32),
+    pub uv: Option<(f32, f32)>,
 }
 
 impl RayCastHit {
@@ -15,6 +16,7 @@ impl RayCastHit {
             normal: None,
             distance: 0.0,
             pos_on_screen: (0, 0),
+            uv: None,
         }
     }
 
@@ -25,6 +27,11 @@ impl RayCastHit {
 
     pub fn with_distance(mut self, distance: f32) -> RayCastHit {
         self.distance = distance;
+        self
+    }
+
+    pub fn with_uv(mut self, uv: (f32, f32)) -> RayCastHit {
+        self.uv = Some(uv);
         self
     }
 

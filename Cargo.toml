@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 
 float-cmp = "0.9.0"
-raylib = "3.7.0"
 cstr = "0.2.11"
-image = "0.25.0"
+image = { version = "0.25", features = ["jpeg", "png"] }
 rand = "0.8.5"

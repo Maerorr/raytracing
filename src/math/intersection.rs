@@ -30,8 +30,16 @@ impl IntersectionPrimitive for Surface {
                 return RayCastHit::new(None);
             }
             let distance = (intersection - ray.point).length();
-            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance)
-            
+
+            if self.max_v.is_some() && self.max_w.is_some() {
+                let u = (ts.0 - self.max_v.unwrap().0) / (self.max_v.unwrap().1 - self.max_v.unwrap().0);
+                let v = (ts.1 - self.max_w.unwrap().0) / (self.max_w.unwrap().1 - self.max_w.unwrap().0);
+                let uv = (u, v);
+                //println!("uv: {:.3?}", uv);
+                return RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance).with_uv(uv)
+            }
+
+            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance)//.with_uv(uv)
         } else {
             RayCastHit::new(None)
         }

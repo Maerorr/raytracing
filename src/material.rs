@@ -1,3 +1,5 @@
+use image::ImageBuffer;
+
 use crate::color::Color;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -8,7 +10,7 @@ pub enum MaterialType {
     PBR,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Material {
     pub base_color: Color,
     pub specular_amount: f32,
@@ -20,6 +22,11 @@ pub struct Material {
     // PBR
     pub metallic: f32,
     pub roughness: f32,
+
+    pub textured: bool,
+    pub albedo_map: ImageBuffer<image::Rgb<u8>, Vec<u8>>,
+    pub metallic_map: ImageBuffer<image::Rgb<u8>, Vec<u8>>,
+    pub roughness_map: ImageBuffer<image::Rgb<u8>, Vec<u8>>,
 }
 
 impl Default for Material {
@@ -33,6 +40,10 @@ impl Default for Material {
             refractive_index: 1.0,
             metallic: 0.0,
             roughness: 0.0,
+            textured: false,
+            albedo_map: ImageBuffer::new(1, 1),
+            metallic_map: ImageBuffer::new(1, 1),
+            roughness_map: ImageBuffer::new(1, 1),
         }
     }
 }
@@ -86,6 +97,19 @@ impl Material {
             roughness,
             material_type: MaterialType::PBR,
             max_bounce_depth: 8000.0,
+            ..Default::default()
+        }
+    }
+
+    pub fn new_textured_pbr(albedo: ImageBuffer<image::Rgb<u8>, Vec<u8>>, metal: ImageBuffer<image::Rgb<u8>, Vec<u8>>, roughness: ImageBuffer<image::Rgb<u8>, Vec<u8>>) -> Material {
+        Material {
+            material_type: MaterialType::PBR,
+            max_bounce_depth: 8000.0,
+            textured: true,
+            roughness: 1.0,
+            albedo_map: albedo,
+            metallic_map: metal,
+            roughness_map: roughness,
             ..Default::default()
         }
     }

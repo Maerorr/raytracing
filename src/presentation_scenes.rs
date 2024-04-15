@@ -1,4 +1,5 @@
 use crate::{color::Color, geometry::{Sphere, Surface}, light::{Light, RectangleAreaLight}, material::Material, math::Vector, scene::Scene, BLACK_MAT, BLUE_MAT, GLASS_MAT, GREEN_MAT, MIRROR_MAT, RED_MAT, WHITE_MAT};
+use image::{io::Reader as ImageReader, ImageBuffer};
 
 pub fn shading_scene() -> Scene {
     let mut scene = Scene::new();
@@ -150,20 +151,6 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
     let mut scene = Scene::new();
     let mut materials = Vec::new();
     let mut mat_count = 0;
-    // for i in 0..2 {
-    //     for j in 0..2 {
-    //         let mut pos = Vector::new(-300.0 + i as f32 * 600.0, -300.0 + j as f32 * 600.0, -900.0);
-    //         let sphere = Sphere::new(pos, 200.0);
-    //         scene.add_primitive(Box::new(sphere), mat_count);
-    //         let material = Material::new_pbr(Color::red(), 0.3, mat_count as f32 * 0.25);
-    //         println!("created pbr material with roughness: {}", mat_count as f32 * 0.25);
-    //         materials.push(material);
-    //         mat_count += 1;
-    //         let light_pos = Vector::new(-50.0 + i as f32 * 100.0, -50.0 + j as f32 * 100.0, -200.0);
-    //         let point = Light::new_point(light_pos, Color::white(), (0.1, 0.001, 0.0004));
-    //         scene.add_light(point);
-    //     }
-    // }
 
     let sphere_roughness00 = Sphere::new(Vector::new(-300.0, -300.0, -900.0), 200.0);
     scene.add_primitive(Box::new(sphere_roughness00), mat_count);
@@ -188,9 +175,6 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
     let material_roughness075 = Material::new_pbr(Color::red(), 0.3, 0.75);
     materials.push(material_roughness075);
     mat_count += 1;
-
-    // let light = Light::new_point(Vector::new(0.0, 0.0, -200.0), Color::white(), (1.0, 0.001, 0.00002));
-    // scene.add_light(light);
 
     let pos = Vector::new(0.0, 0.0, -500.0);
     let sphere = Sphere::new(pos, 100.0);
@@ -267,6 +251,66 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
     scene.add_lights(area_light.get_lights());
     // let point = Light::new_point(Vector::new(0.0, 0.0, -500.0), Color::white(), (0.1, 0.000001, 0.000004));
     // scene.add_light(point);
+
+    (scene, materials)
+}
+
+pub fn texture_test() -> (Scene, Vec<Material>) {
+    let mut scene = Scene::new();
+    let mut materials = Vec::new();
+
+    let white_mat = Material::new_pbr(
+        Color::white(),
+        0.1,
+        0.5,
+    );
+    materials.push(white_mat);
+
+    let tex_quad = Surface::new_vw(
+        Vector::new(0.0, 0.0, -1000.0),
+        Vector::new(-1.0, 0.0, 0.0),
+        Vector::new(0.0, 1.0, 0.0),
+        None,
+        None,
+        Vector::new(0.0, 0.0, 1.0)
+    );
+    scene.add_primitive(Box::new(tex_quad), 0);
+
+    let albedo_texture = ImageReader::open("res/albedo.png").unwrap().decode().unwrap().into_rgb8();
+    let metal_texture = ImageReader::open("res/metal.png").unwrap().decode().unwrap().into_rgb8();
+    let roughness_texture = ImageReader::open("res/rough.png").unwrap().decode().unwrap().into_rgb8();
+
+    let textured_mat = Material::new_textured_pbr(
+        albedo_texture,
+        metal_texture,
+        roughness_texture
+    );
+    materials.push(textured_mat);
+
+    let tex_quad = Surface::new_vw(
+        Vector::new(0.0, 0.0, -500.0),
+        Vector::new(-1.0, 0.0, 0.0),
+        Vector::new(0.0, 1.0, 0.0),
+        Some((-400.0, 400.0)),
+        Some((-400.0, 400.0)),
+        Vector::new(0.0, 0.0, 1.0)
+    );
+    scene.add_primitive(Box::new(tex_quad), 1);
+
+    let ambient = Light::new_ambient(Color::white(), 0.05);
+    scene.add_light(ambient);
+
+    let area_light = RectangleAreaLight::new(
+        Vector::new(0.0, 0.0, 0.0),
+        Color::white(),
+        (50.0, 0.002, 0.0001),
+        Vector::new(0.0, 0.0, -1.0),
+        Vector::new(1.0, 0.0, 0.0),
+        100.0,
+        100.0,
+        8.0,
+    );
+    scene.add_lights(area_light.get_lights());
 
     (scene, materials)
 }

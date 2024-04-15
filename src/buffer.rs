@@ -1,7 +1,4 @@
 use core::panic;
-
-use raylib::color;
-
 use crate::color::Color;
 
 pub struct Buffer {
@@ -102,6 +99,15 @@ impl Buffer {
                     }
                 }
                 color /= 4.0;
+                if color.r < 0.1 && color.g < 0.1 && color.b < 0.1 {
+                    for i in 0..2 {
+                        for j in 0..2 {
+                            let index = (x + j + (y + i) * self.width) as usize;
+                            println!("c {}", self.data[index].to_string());
+                            //color += self.data[index];
+                        }
+                    }
+                }
                 new_data.push(color);
             }
         }

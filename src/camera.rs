@@ -3,6 +3,8 @@ use std::path;
 use std::sync::Arc;
 use std::thread::Thread;
 
+use image::Pixel;
+
 use crate::buffer::Buffer;
 use crate::color::Color;
 use crate::geometry::Line;
@@ -395,6 +397,8 @@ impl Camera {
         for (i, color) in output_pixels.iter().enumerate() {
             if color.is_some() {
                 self.buffer.write_pixel_by_idx(i, color.unwrap());
+            } else {
+                println!("no color for pixel {}", i);
             }
         }
 
@@ -520,17 +524,23 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
     } else {
         let pinhole_position = data.position - data.forward * data.pinhole_distance;
         let mut ray = Line::new(data.position, data.forward);
-        for i in data.min_i..data.max_i {
-            for j in data.min_j..data.max_j {
+        for (ci, i) in (data.min_i..data.max_i).enumerate() {
+            for (cj, j) in (data.min_j..data.max_j).enumerate() {
                 //'pinhole' camera rendering
                 ray.point = data.position + data.up * i as f32 + data.right * j as f32;
                 if data.aa_type == AntiAliasingType::Supersampling4x {
                     ray.point /= 2.0;
                 }
 
-                ray.direction = Vector::from_points(pinhole_position, ray.point);
-                
-                let color = p_shoot_ray(&ray, pinhole_position, &data.scene, &data.materials, None, data.sky_color);
+                ray.direction = Vector::from_points(pinhole_position, ray.point)._normalize();
+
+                let mut color = p_shoot_ray(&ray, pinhole_position, &data.scene, &data.materials, None, data.sky_color);
+
+                if ci == (246 * 2) && cj == (256 * 2) {
+                    //color = Some(Color::blue());
+                    println!("ray: {:?}", ray);
+                    println!("color: {:?}", color);
+                }
                 output.push(color);
             }
         }
@@ -631,7 +641,28 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
             MaterialType::PBR => {
                 let mut f0 = Color::new(0.04, 0.04, 0.04);
                 f0.blend(&material.base_color, material.metallic);
-                let albedo = material.base_color;
+                let albedo;
+                let metallic;
+                let roughness;
+                if material.textured && closest_intersection.uv.is_some() {
+                    let uv = closest_intersection.uv.unwrap();
+                    let u = uv.0;
+                    let v = uv.1;
+                    let tex_size = material.albedo_map.dimensions();
+                    let color = material.albedo_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
+                    let tex_size = material.roughness_map.dimensions();
+                    let rough_sampled = material.roughness_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
+                    let tex_size = material.metallic_map.dimensions();
+                    let metallic_sampled = material.metallic_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
+                    albedo = Color::new(color[0] as f32 / 255.0, color[1] as f32 / 255.0, color[2] as f32 / 255.0);
+                    metallic = metallic_sampled[0] as f32 / 255.0;
+                    roughness = rough_sampled[0] as f32 / 255.0;
+                } else {
+                    albedo = material.base_color;
+                    metallic = material.metallic;
+                    roughness = material.roughness;
+                }
+                
                 let mut lo = Color::black();
                 let V = (pinhole_position - intersection)._normalize();
                 for light in scene.lights.iter() {
@@ -652,8 +683,8 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
                         let att = 1.0 / (1.0 + distance_for_att * distance_for_att);
                         let radiance = light.color * att;
 
-                        let NDF = distribution_ggx(normal, H, material.roughness);
-                        let G = geometry_smith(normal, V, L, material.roughness);
+                        let NDF = distribution_ggx(normal, H, roughness);
+                        let G = geometry_smith(normal, V, L, roughness);
                         let F = fresnel_schlick(V.dot(&H), f0);
 
                         let numerator = F.to_vector() * NDF * G;
@@ -662,12 +693,11 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
 
                         let kS = F;
                         let mut kD = Color::white() - kS;
-                        kD *= 1.0 - material.metallic;
+                        kD *= 1.0 - metallic;
                         let ndotl = normal.dot(&L).max(0.0);
                         lo += (kD * albedo / std::f32::consts::PI + Color::from(specular)) * radiance * ndotl;
                     }
                 }
-
                 let ambient = Color::white() * 0.01 * albedo;
                 let mut pixel_color = ambient + lo;
                 //println!("{}", pixel_color.to_string());

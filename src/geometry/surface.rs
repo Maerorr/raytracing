@@ -104,6 +104,16 @@ impl Surface {
         self.max_w = Some((v1, v2));
     }
 
+    pub fn get_uv(&self, point: &Vector) -> (f32, f32) {
+        if self.v.is_none() || self.w.is_none() {
+            return (0.0, 0.0);
+        }
+        let v = *point - self.point;
+        let t = v.dot(&self.v.unwrap()) / self.v.unwrap().length_squared();
+        let s = v.dot(&self.w.unwrap()) / self.w.unwrap().length_squared();
+        (t, s)
+    }
+
     pub fn translate(&mut self, v: &Vector) {
         self.point += *v;
     }
