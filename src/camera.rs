@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::path;
 use std::sync::Arc;
 use std::thread::Thread;
 
+use float_cmp::F32Margin;
 use image::Pixel;
 
 use crate::buffer::Buffer;
@@ -47,6 +49,7 @@ pub struct Camera {
     pub buffer: Buffer,
     pub antialias_debug_buffer: Buffer,
     pub aa_type: AntiAliasingType,
+    pub max_bounces: i32,
 }
 
 impl Camera {
@@ -67,6 +70,7 @@ impl Camera {
             buffer: Buffer::new(width as u32, height as u32),
             antialias_debug_buffer: Buffer::new(width as u32, height as u32),
             aa_type: AntiAliasingType::None,
+            max_bounces: 4,
         }
     }
 
@@ -374,6 +378,7 @@ impl Camera {
                 materials: self.materials.clone(),
                 scene: scene_arc.clone(),
                 sky_color: self.buffer.clear_color,
+                max_bounces: self.max_bounces,
             };
             thread_data_vec.push(thread_data);
         }
@@ -504,6 +509,7 @@ pub struct ThreadRenderDara {
     pub materials: Vec<Material>,
     pub scene: Arc<Scene>,
     pub sky_color: Color,
+    pub max_bounces: i32,
 }
 
 pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
@@ -517,7 +523,7 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
                 if data.aa_type == AntiAliasingType::Supersampling4x {
                     ray.point /= 2.0;
                 }
-                let color = p_shoot_ray(&ray, pinhole_position, &data.scene, &data.materials, None, data.sky_color);
+                let color = p_shoot_ray(&ray, pinhole_position, &data.scene, &data.materials, data.max_bounces, data.sky_color);
                 output.push(color);
             }
         }
@@ -534,13 +540,7 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
 
                 ray.direction = Vector::from_points(pinhole_position, ray.point)._normalize();
 
-                let mut color = p_shoot_ray(&ray, pinhole_position, &data.scene, &data.materials, None, data.sky_color);
-
-                if ci == (246 * 2) && cj == (256 * 2) {
-                    //color = Some(Color::blue());
-                    println!("ray: {:?}", ray);
-                    println!("color: {:?}", color);
-                }
+                let mut color = p_shoot_ray(&ray, pinhole_position, &data.scene, &data.materials, data.max_bounces, data.sky_color);
                 output.push(color);
             }
         }
@@ -549,8 +549,10 @@ pub fn render_thread(data: ThreadRenderDara) -> Vec<Option<Color>>{
     output
 }
 
-pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, materials: &Vec<Material>, max_distance: Option<f32>, sky_color: Color) -> Option<Color> {
-    let maxd = max_distance.unwrap_or(0.0);
+pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, materials: &Vec<Material>, max_bounces: i32, sky_color: Color) -> Option<Color> {
+    if max_bounces == -1 {
+        return Some(sky_color);
+    }
     let mut closest_intersection = RayCastHit::new(None);
     let mut closest_distance = 0.0;
     let mut closest_material_idx = 0;
@@ -577,12 +579,6 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
     }
 
     if closest_intersection.is_some() {
-        if max_distance.is_some() {
-            if closest_intersection.distance > max_distance.unwrap() {
-                return None;
-            }
-        }
-
         let mut color = Color::black();
         let intersection = closest_intersection.unwrap().0;
         let normal = closest_intersection.normal.unwrap();
@@ -615,6 +611,7 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
                         if !shadowed {
                             let light_color = light.calculate_lighting(&lighting_data);
                             color += light_color;
+                            color._clamp01();
                         }
                     }
                 }
@@ -623,8 +620,7 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
                 let reflected_dir = ray.direction.reflect(&normal);
                 let reflected_ray_start = intersection + reflected_dir * 0.1;
                 let reflected_ray = Line::new(reflected_ray_start, reflected_dir);
-                let max_dist = (material.max_bounce_depth - closest_intersection.distance - maxd).max(0.0);
-                let reflected_color = p_shoot_ray(&reflected_ray, pinhole_position, scene, materials, Some(max_dist), sky_color);
+                let reflected_color = p_shoot_ray(&reflected_ray, pinhole_position, scene, materials, max_bounces - 1, sky_color);
                 if reflected_color.is_some() {
                     color = reflected_color.unwrap();
                 }
@@ -633,77 +629,61 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
                 let refracted_dir = ray.direction.refract(&normal, material.refractive_index);
                 let refracted_ray_start = intersection + refracted_dir * 0.1;
                 let refracted_ray = Line::new(refracted_ray_start, refracted_dir);
-                let refracted_color = p_shoot_ray(&refracted_ray, pinhole_position, scene, materials, None, sky_color);
+                let refracted_color = p_shoot_ray(&refracted_ray, pinhole_position, scene, materials, max_bounces - 1, sky_color);
                 if refracted_color.is_some() {
                     color = refracted_color.unwrap();
                 }
             },
             MaterialType::PBR => {
-                let mut f0 = Color::new(0.04, 0.04, 0.04);
-                f0.blend(&material.base_color, material.metallic);
-                let albedo;
-                let metallic;
-                let roughness;
-                if material.textured && closest_intersection.uv.is_some() {
-                    let uv = closest_intersection.uv.unwrap();
-                    let u = uv.0;
-                    let v = uv.1;
-                    let tex_size = material.albedo_map.dimensions();
-                    let color = material.albedo_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
-                    let tex_size = material.roughness_map.dimensions();
-                    let rough_sampled = material.roughness_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
-                    let tex_size = material.metallic_map.dimensions();
-                    let metallic_sampled = material.metallic_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
-                    albedo = Color::new(color[0] as f32 / 255.0, color[1] as f32 / 255.0, color[2] as f32 / 255.0);
-                    metallic = metallic_sampled[0] as f32 / 255.0;
-                    roughness = rough_sampled[0] as f32 / 255.0;
-                } else {
-                    albedo = material.base_color;
-                    metallic = material.metallic;
-                    roughness = material.roughness;
-                }
-                
+                let albedo = material.base_color;
+                let roughness = material.roughness;
+                let metalic = material.metallic;
+                let anisotropy = material.anisotropy;
+                let ior = 1.5;
+                let f0 = Vector::new(0.04, 0.04, 0.04);
+                let albedo_vec = albedo.to_vector();
+                let f0 = Vector::lerp(&f0, &albedo_vec, metalic);
+
                 let mut lo = Color::black();
-                let V = (pinhole_position - intersection)._normalize();
                 for light in scene.lights.iter() {
                     if light.light_type == LightType::Point {
-                        let light_dir = (light.position - intersection)._normalize();
-                        let line_pos = intersection + light_dir * 0.01;
-                        let light_ray = Line::new(line_pos, light_dir);
+                        let l = (light.position - intersection)._normalize();
+                        let v = (pinhole_position - intersection)._normalize();
+                        let h = (v + l)._normalize();
+                        let cos_theta = normal.dot(&l).max(0.0);
+
                         let distance = intersection.distance(&light.position);
-                        let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
-        
-                        if shadowed {
-                            continue;
+                        let attenuation = 1.0 / (light.attenuation.0 + light.attenuation.1 * distance + light.attenuation.2 * distance * distance);
+                        let radiance = light.color * attenuation;
+
+                        let mut D = normal_distribution(&normal, &h, roughness);
+                        if anisotropy > 0.0 {
+                            let tangent = (Vector::new(0.0, 0.0, 1.0).cross(&normal))._normalize();
+                            let binormal = normal.cross(&tangent);
+                            let an = ggx_anisotropic(&h, &normal, &tangent, &binormal, 0.02, 0.1);
+                            D = anisotropy * an + ((1.0 - anisotropy) * D);
                         }
 
-                        let L = (light.position - intersection)._normalize();
-                        let H = (V + L)._normalize();
-                        let distance_for_att = intersection.distance(&light.position) / 100.0;
-                        let att = 1.0 / (1.0 + distance_for_att * distance_for_att);
-                        let radiance = light.color * att;
+                        let G = geometry_smith(normal, v, l, roughness);
 
-                        let NDF = distribution_ggx(normal, H, roughness);
-                        let G = geometry_smith(normal, V, L, roughness);
-                        let F = fresnel_schlick(V.dot(&H), f0);
+                        let F = fresnel_schlick(cos_theta, Color::from(f0));
 
-                        let numerator = F.to_vector() * NDF * G;
-                        let denominator = 4.0 * normal.dot(&V).max(0.0) * normal.dot(&L).max(0.0) + 0.0001;
-                        let specular = numerator / denominator;
-
-                        let kS = F;
-                        let mut kD = Color::white() - kS;
-                        kD *= 1.0 - metallic;
-                        let ndotl = normal.dot(&L).max(0.0);
-                        lo += (kD * albedo / std::f32::consts::PI + Color::from(specular)) * radiance * ndotl;
+                        let numerator = F * D * G;
+                        let denom = 4.0 * normal.dot(&v).max(0.0) * normal.dot(&l).max(0.0) + 0.001;
+                        let specular = numerator / denom;
+                        let ks = F;
+                        let kd = Color::white() - ks;
+                        let kd = kd * (1.0 - metalic);
+                       // println!("ks: {:?}, kd: {:?}", ks, kd);
+                        //println!("kd: {}, albedo: {}, spec: {}, radiance: {}, cos_t: {}", kd.to_string(), albedo.to_string(), specular, radiance.to_string(), cos_theta);
+                        lo += (kd * albedo + specular) * radiance * cos_theta;
                     }
                 }
-                let ambient = Color::white() * 0.01 * albedo;
-                let mut pixel_color = ambient + lo;
-                //println!("{}", pixel_color.to_string());
+                let ambient = albedo * 0.003;
+                let mut pixel_color = lo + ambient;
                 pixel_color = pixel_color / (pixel_color + Color::white());
                 pixel_color.gamma_correction(2.2);
-                color = pixel_color;
+                color += pixel_color;
             }
         }
 
@@ -711,6 +691,26 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
     } else {
         None
     }
+}
+
+pub fn normal_distribution(n: &Vector, h: &Vector, roughness: f32) -> f32 {
+    let a2 = (roughness * roughness).powi(2);
+    let ndoth: f32 = n.dot(h);
+    let ndoth2 = ndoth * ndoth;
+    let num = a2;
+    let mut denom = ndoth2 * (a2 - 1.0) + 1.0;
+    denom = 4.0 * denom * denom;
+    num / denom
+}
+
+// GGX Anisotropic [5] from: https://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
+pub fn ggx_anisotropic(h: &Vector, n: &Vector, x: &Vector, y: &Vector, ax: f32, ay: f32, ) -> f32 {
+    let first = 1.0 / (PI * ax * ay);
+    let ndoth2 = n.dot(h) * n.dot(h);
+    let xh = (x.dot(h)).powi(2) / ax.powi(2);
+    let yh = (y.dot(h)).powi(2) / ay.powi(2);
+    let second = 1.0 / (xh + yh + ndoth2).powi(2);
+    first * second
 }
 
 pub fn shoot_ray_into_light(ray: &Line, scene: &Scene, max_distance: f32) -> bool {
@@ -727,16 +727,6 @@ pub fn shoot_ray_into_light(ray: &Line, scene: &Scene, max_distance: f32) -> boo
     return false
 }
 
-pub fn distribution_ggx(N: Vector, H: Vector, roughness: f32) -> f32 {
-    let a = roughness * roughness;
-    let a2 = a * a;
-    let NdotH = N.dot(&H).max(0.0);
-    let NdotH2 = NdotH * NdotH;
-    let num = a2;
-    let mut denom = NdotH2 * (a2 - 1.0) + 1.0;
-    denom = std::f32::consts::PI * denom * denom;
-    num / denom
-}
 
 pub fn geometry_schlick_ggx(NdotV: f32, roughness: f32) -> f32 {
     let r = roughness + 1.0;
@@ -753,5 +743,72 @@ pub fn geometry_smith(N: Vector, V: Vector, L: Vector, roughness: f32) -> f32 {
 }
 
 pub fn fresnel_schlick(cos_theta: f32, f0: Color) -> Color {
-    f0 + (Color::white() - f0) * ((1.0 - cos_theta).clamp(0.0, 1.0)).powf(5.0)
+    f0 + (Color::white() - f0) * ((1.0 - cos_theta).clamp(0.0, 1.0)).powi(5)
 }
+
+//return None;
+// let mut f0 = Color::new(0.04, 0.04, 0.04);
+// f0.blend(&material.base_color, material.metallic);
+// let albedo;
+// let metallic;
+// let roughness;
+// if material.textured && closest_intersection.uv.is_some() {
+//     let uv = closest_intersection.uv.unwrap();
+//     let u = uv.0;
+//     let v = uv.1;
+//     let tex_size = material.albedo_map.dimensions();
+//     let color = material.albedo_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
+//     let tex_size = material.roughness_map.dimensions();
+//     let rough_sampled = material.roughness_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
+//     let tex_size = material.metallic_map.dimensions();
+//     let metallic_sampled = material.metallic_map.get_pixel((u * (tex_size.0 - 1) as f32) as u32, (v * (tex_size.1 - 1) as f32) as u32).to_rgb();
+//     albedo = Color::new(color[0] as f32 / 255.0, color[1] as f32 / 255.0, color[2] as f32 / 255.0);
+//     metallic = metallic_sampled[0] as f32 / 255.0;
+//     roughness = rough_sampled[0] as f32 / 255.0;
+// } else {
+//     albedo = material.base_color;
+//     metallic = material.metallic;
+//     roughness = material.roughness;
+// }
+
+// let mut lo = Color::black();
+// let V = (pinhole_position - intersection)._normalize();
+// for light in scene.lights.iter() {
+//     if light.light_type == LightType::Point {
+//         let light_dir = (light.position - intersection)._normalize();
+//         let line_pos = intersection + light_dir * 0.01;
+//         let light_ray = Line::new(line_pos, light_dir);
+//         let distance = intersection.distance(&light.position);
+//         let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
+
+//         if shadowed {
+//             continue;
+//         }
+
+//         let L = (light.position - intersection)._normalize();
+//         let H = (V + L)._normalize();
+//         let distance_for_att = intersection.distance(&light.position) / 100.0;
+//         let att = 1.0 / (1.0 + distance_for_att * distance_for_att);
+//         let radiance = light.color * att;
+
+//         let NDF: f32 = distribution_ggx(normal, H, roughness);
+//         let G = geometry_smith(normal, V, L, roughness);
+//         let F = fresnel_schlick(V.dot(&H), f0);
+
+//         let numerator = F.to_vector() * NDF * G;
+//         let denominator = 4.0 * normal.dot(&V).max(0.0) * normal.dot(&L).max(0.0) + 0.0001;
+//         let specular = numerator / denominator;
+
+//         let kS = F;
+//         let mut kD = Color::white() - kS;
+//         kD *= 1.0 - metallic;
+//         let ndotl = normal.dot(&L).max(0.0);
+//         lo += Color::new(NDF, NDF, NDF);//(kD * albedo / std::f32::consts::PI + Color::from(specular)) * radiance * ndotl;
+//     }
+// }
+// let ambient = Color::black();//Color::white() * 0.01 * albedo;
+// let mut pixel_color = ambient + lo;
+// //println!("{}", pixel_color.to_string());
+// // pixel_color = pixel_color / (pixel_color + Color::white());
+// // pixel_color.gamma_correction(2.2);
+// color = pixel_color;

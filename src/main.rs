@@ -68,13 +68,13 @@ fn main() {
         Vector::new(0.0, 1.0, 0.0)
     );
 
-    // let materials = init_materials();
-    // for mat in materials {
-    //     camera.add_material(mat);
-    // }
+    //let materials = init_materials();
+    //for mat in materials {
+    //    camera.add_material(mat);
+    //}
 
     //let scene = reflection_refraction_scene();
-    let (scene, materials) = texture_test();//pbr_scene();
+    let (scene, materials) = pbr_scene();
 
     for mat in materials {
         camera.add_material(mat);
@@ -83,6 +83,7 @@ fn main() {
     camera.perspective = true;
     camera.aa_type = AntiAliasingType::Supersampling4x;
     camera.pinhole_distance = 390.0;
+    camera.max_bounces = 10;
 
     //camera.render_scene(&scene, "output"); 
     camera.render_scene_multithreaded(scene, "multithread.png");

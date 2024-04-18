@@ -16,7 +16,7 @@ impl Color {
 
     pub fn to_u8(&self) -> (u8, u8, u8) {
         if self.r > 1.0 || self.g > 1.0 || self.b > 1.0 || self.r < 0.0 || self.g < 0.0 || self.b < 0.0 {
-            panic!("Color values must be between 0.0 and 1.0");
+            panic!("Color values must be between 0.0 and 1.0. Value: {}", self.to_string());
         }
         let r = (self.r * 255.0).clamp(0.0, 255.0) as u8;
         let g = (self.g * 255.0).clamp(0.0, 255.0) as u8;
@@ -62,6 +62,20 @@ impl Color {
 
     pub fn is_nan(&self) -> bool {
         self.r.is_nan() || self.g.is_nan() || self.b.is_nan()
+    }
+
+    pub fn _clamp01(&mut self) {
+        self.r = self.r.clamp(0.0, 1.0);
+        self.g = self.g.clamp(0.0, 1.0);
+        self.b = self.b.clamp(0.0, 1.0);
+    }
+
+    pub fn clamp01(&self) -> Color {
+        Color::new(
+            self.r.clamp(0.0, 1.0),
+            self.g.clamp(0.0, 1.0),
+            self.b.clamp(0.0, 1.0),
+        )
     }
 }
 

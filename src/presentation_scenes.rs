@@ -154,32 +154,32 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
 
     let sphere_roughness00 = Sphere::new(Vector::new(-300.0, -300.0, -900.0), 200.0);
     scene.add_primitive(Box::new(sphere_roughness00), mat_count);
-    let material_roughness00 = Material::new_pbr(Color::red(), 0.3, 0.0);
+    let material_roughness00 = Material::new_pbr(Color::red(), 0.0, 0.3, 1.3, 0.0);
     materials.push(material_roughness00);
     mat_count += 1;
 
     let sphere_roughness025 = Sphere::new(Vector::new(300.0, -300.0, -900.0), 200.0);
     scene.add_primitive(Box::new(sphere_roughness025), mat_count);
-    let material_roughness01 = Material::new_pbr(Color::red(), 0.3, 0.25);
+    let material_roughness01 = Material::new_pbr(Color::red(), 0.0, 0.3, 1.3, 0.0);
     materials.push(material_roughness01);
     mat_count += 1;
 
     let sphere_roughness05 = Sphere::new(Vector::new(-300.0, 300.0, -900.0), 200.0);
     scene.add_primitive(Box::new(sphere_roughness05), mat_count);
-    let material_roughness05 = Material::new_pbr(Color::red(), 0.3, 0.5);
+    let material_roughness05 = Material::new_pbr(Color::red(), 0.0, 0.3, 1.3, 0.0);
     materials.push(material_roughness05);
     mat_count += 1;
 
     let sphere_roughness075 = Sphere::new(Vector::new(300.0, 300.0, -900.0), 200.0);
     scene.add_primitive(Box::new(sphere_roughness075), mat_count);
-    let material_roughness075 = Material::new_pbr(Color::red(), 0.3, 0.75);
+    let material_roughness075 = Material::new_pbr(Color::red(), 0.0, 0.3, 1.3, 0.0);
     materials.push(material_roughness075);
     mat_count += 1;
 
     let pos = Vector::new(0.0, 0.0, -500.0);
     let sphere = Sphere::new(pos, 100.0);
     scene.add_primitive(Box::new(sphere), mat_count);
-    let material = Material::new_pbr(Color::green(), 1.0, 0.4);
+    let material = Material::new_pbr(Color::green(), 1.0, 0.4, 1.3, 0.9);
     materials.push(material);
     mat_count += 1;
 
@@ -187,16 +187,19 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
         Color::blue(),
         0.1,
         0.5,
+        1.3, 0.0
     );
     let red_mat = Material::new_pbr(
         Color::red(),
         0.4,
         0.2,
+        1.3, 0.0
     );
     let green_mat = Material::new_pbr(
         Color::green(),
         0.1,
         0.8,
+        1.3, 0.0
     );
     materials.push(blue_mat);
     materials.push(red_mat);
@@ -235,22 +238,22 @@ pub fn pbr_scene() -> (Scene, Vec<Material>) {
     mat_count += 1;
     scene.add_primitive(Box::new(back_wall), mat_count);
 
-    let ambient = Light::new_ambient(Color::white(), 0.05);
-    scene.add_light(ambient);
+    //let ambient = Light::new_ambient(Color::white(), 0.01);
+    //scene.add_light(ambient);
 
-    let area_light = RectangleAreaLight::new(
-        Vector::new(0.0, 0.0, 0.0),
-        Color::white(),
-        (50.0, 0.002, 0.0001),
-        Vector::new(0.0, 0.0, -1.0),
-        Vector::new(1.0, 0.0, 0.0),
-        100.0,
-        100.0,
-        8.0,
-    );
-    scene.add_lights(area_light.get_lights());
-    // let point = Light::new_point(Vector::new(0.0, 0.0, -500.0), Color::white(), (0.1, 0.000001, 0.000004));
-    // scene.add_light(point);
+    // let area_light = RectangleAreaLight::new(
+    //     Vector::new(0.0, 0.0, 0.0),
+    //     Color::white(),
+    //     (50.0, 0.002, 0.0001),
+    //     Vector::new(0.0, 1.0, 0.0),
+    //     Vector::new(1.0, 0.0, 0.0),
+    //     300.0,
+    //     300.0,
+    //     3.0,
+    // );
+    // scene.add_lights(area_light.get_lights());
+    let point = Light::new_point(Vector::new(300.0, 0.0, 0.0), Color::white(), (0.1, 0.000001, 0.000004));
+    scene.add_light(point);
 
     (scene, materials)
 }
@@ -263,6 +266,7 @@ pub fn texture_test() -> (Scene, Vec<Material>) {
         Color::white(),
         0.1,
         0.5,
+        1.3, 0.0
     );
     materials.push(white_mat);
 
