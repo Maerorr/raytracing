@@ -77,6 +77,17 @@ impl Color {
             self.b.clamp(0.0, 1.0),
         )
     }
+
+    pub fn add_random_offset(&mut self, offset: f32) {
+        // +/- offset/2
+        self.r += (rand::random::<f32>() * offset) - offset / 2.0;
+        self.g += (rand::random::<f32>() * offset) - offset / 2.0;
+        self.b += (rand::random::<f32>() * offset) - offset / 2.0;
+
+        self.r = self.r.clamp(0.0, 1.0);
+        self.g = self.g.clamp(0.0, 1.0);
+        self.b = self.b.clamp(0.0, 1.0);
+    }
 }
 
 impl Default for Color {

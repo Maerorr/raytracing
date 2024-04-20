@@ -8,7 +8,7 @@ use image::{DynamicImage, ImageBuffer};
 use light::{Light, RectangleAreaLight};
 use material::Material;
 use math::{Quaternion, RayCastHit, Vector};
-use presentation_scenes::{pbr_scene, reflection_refraction_scene, shading_scene, texture_test};
+use presentation_scenes::{full_pbr_scene, pbr_scene, reflection_refraction_scene, shading_scene, texture_test};
 use scene::Scene;
 
 use crate::math::{as_degrees, as_radians, IntersectionPrimitive};
@@ -27,8 +27,8 @@ mod presentation_scenes;
 mod geometry;
 mod math;
 
-const RENDER_WIDTH: i32 = 512;
-const RENDER_HEIGHT: i32 = 512;
+const RENDER_WIDTH: i32 = 1920;
+const RENDER_HEIGHT: i32 = 1080;
 
 const OFFSET: (i32, i32) = (RENDER_WIDTH / 2, RENDER_HEIGHT / 2);
 
@@ -74,7 +74,7 @@ fn main() {
     //}
 
     //let scene = reflection_refraction_scene();
-    let (scene, materials) = pbr_scene();
+    let (scene, materials) = full_pbr_scene();
 
     for mat in materials {
         camera.add_material(mat);
@@ -82,7 +82,7 @@ fn main() {
 
     camera.perspective = true;
     camera.aa_type = AntiAliasingType::Supersampling4x;
-    camera.pinhole_distance = 390.0;
+    camera.pinhole_distance = 690.0;
     camera.max_bounces = 10;
 
     //camera.render_scene(&scene, "output"); 

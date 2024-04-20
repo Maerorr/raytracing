@@ -12,7 +12,7 @@ use crate::color::Color;
 use crate::geometry::Line;
 use crate::light::{LightCalculationData, LightType};
 use crate::material::{self, Material, MaterialType};
-use crate::math::{RayCastHit, Vector};
+use crate::math::{Quaternion, RayCastHit, Vector};
 use crate::scene::Scene;
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
@@ -403,7 +403,7 @@ impl Camera {
             if color.is_some() {
                 self.buffer.write_pixel_by_idx(i, color.unwrap());
             } else {
-                println!("no color for pixel {}", i);
+                //println!("no color for pixel {}", i);
             }
         }
 
@@ -639,47 +639,63 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
                 let roughness = material.roughness;
                 let metalic = material.metallic;
                 let anisotropy = material.anisotropy;
-                let ior = 1.5;
                 let f0 = Vector::new(0.04, 0.04, 0.04);
                 let albedo_vec = albedo.to_vector();
                 let f0 = Vector::lerp(&f0, &albedo_vec, metalic);
+                let anisotropy_rotation = material.anisotropy_rotation;
 
                 let mut lo = Color::black();
                 for light in scene.lights.iter() {
                     if light.light_type == LightType::Point {
                         let l = (light.position - intersection)._normalize();
+
+                        let light_ray = Line::new(intersection + l * 0.01, l);
+                        let distance = intersection.distance(&light.position);
+                        let shadowed = shoot_ray_into_light(&light_ray, scene, distance);
+                        if shadowed {
+                            continue;
+                        }
+
                         let v = (pinhole_position - intersection)._normalize();
                         let h = (v + l)._normalize();
-                        let cos_theta = normal.dot(&l).max(0.0);
+                        let ndotl = normal.dot(&l).max(0.0);
 
                         let distance = intersection.distance(&light.position);
                         let attenuation = 1.0 / (light.attenuation.0 + light.attenuation.1 * distance + light.attenuation.2 * distance * distance);
                         let radiance = light.color * attenuation;
 
                         let mut D = normal_distribution(&normal, &h, roughness);
-                        if anisotropy > 0.0 {
+                        if anisotropy > 0.001 {
                             let tangent = (Vector::new(0.0, 0.0, 1.0).cross(&normal))._normalize();
                             let binormal = normal.cross(&tangent);
-                            let an = ggx_anisotropic(&h, &normal, &tangent, &binormal, 0.02, 0.1);
+                            // calculate ax and ay based on anisotropy rotation
+                            let mut v = Vector::new(1.0, 0.0, 0.0);
+                            let mut q = Quaternion::identity();
+                            q.rotate(anisotropy_rotation, Vector::new(0.0, 0.0, 1.0));
+                            q.rotate_vec(&mut v);
+                            let ax = v.x * roughness;
+                            let ay = v.y * roughness;
+
+                            let an = ggx_anisotropic(&h, &normal, &tangent, &binormal, ax, ay);
                             D = anisotropy * an + ((1.0 - anisotropy) * D);
                         }
 
                         let G = geometry_smith(normal, v, l, roughness);
 
-                        let F = fresnel_schlick(cos_theta, Color::from(f0));
+                        let hdotv = h.dot(&v).max(0.0);
+                        let F = fresnel_schlick(hdotv, Color::from(f0));
 
                         let numerator = F * D * G;
-                        let denom = 4.0 * normal.dot(&v).max(0.0) * normal.dot(&l).max(0.0) + 0.001;
+                        let denom = 4.0 * normal.dot(&v).max(0.0) * normal.dot(&l).max(0.0) + 0.0001;
                         let specular = numerator / denom;
                         let ks = F;
                         let kd = Color::white() - ks;
                         let kd = kd * (1.0 - metalic);
-                       // println!("ks: {:?}, kd: {:?}", ks, kd);
-                        //println!("kd: {}, albedo: {}, spec: {}, radiance: {}, cos_t: {}", kd.to_string(), albedo.to_string(), specular, radiance.to_string(), cos_theta);
-                        lo += (kd * albedo + specular) * radiance * cos_theta;
+
+                        lo += (kd * albedo + specular) * radiance * ndotl;
                     }
                 }
-                let ambient = albedo * 0.003;
+                let ambient = albedo * 0.001;
                 let mut pixel_color = lo + ambient;
                 pixel_color = pixel_color / (pixel_color + Color::white());
                 pixel_color.gamma_correction(2.2);
@@ -695,11 +711,11 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
 
 pub fn normal_distribution(n: &Vector, h: &Vector, roughness: f32) -> f32 {
     let a2 = (roughness * roughness).powi(2);
-    let ndoth: f32 = n.dot(h);
+    let ndoth: f32 = (n.dot(h)).max(0.0);
     let ndoth2 = ndoth * ndoth;
     let num = a2;
     let mut denom = ndoth2 * (a2 - 1.0) + 1.0;
-    denom = 4.0 * denom * denom;
+    denom = PI * denom * denom;
     num / denom
 }
 
@@ -711,6 +727,14 @@ pub fn ggx_anisotropic(h: &Vector, n: &Vector, x: &Vector, y: &Vector, ax: f32, 
     let yh = (y.dot(h)).powi(2) / ay.powi(2);
     let second = 1.0 / (xh + yh + ndoth2).powi(2);
     first * second
+
+    // let ax = ax * ax;
+    // let ay = ay * ay;
+    // let xoh = x.dot(h);
+    // let yoh = y.dot(h);
+    // let noh = n.dot(h);
+    // let d = xoh * xoh / (ax * ax) + yoh * yoh / (ay * ay) + noh*noh;
+    // 1.0 / (PI * ax * ay * d * d)
 }
 
 pub fn shoot_ray_into_light(ray: &Line, scene: &Scene, max_distance: f32) -> bool {

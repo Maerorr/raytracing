@@ -85,13 +85,9 @@ impl IntersectionPrimitive for Sphere {
 impl IntersectionPrimitive for Triangle {
     fn intersect(&self, ray: &Line) -> RayCastHit {
         // MOLLER-TRUMBORE METHOD
-        //println!("ray: {}", ray.to_string());
         let v0v1 = self.vertices[1] - self.vertices[0];
-        //println!("v0v1: {}", v0v1.to_string());
         let v0v2 = self.vertices[2] - self.vertices[0];
-        //println!("v0v2: {}", v0v2.to_string());
         let pvec = ray.direction.cross(&v0v2);
-        //println!("pvec: {}", pvec.to_string());
         let det = v0v1.dot(&pvec);
         //println!("det: {}", det);
         if det.abs() < 0.0001 {
