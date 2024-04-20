@@ -1,6 +1,8 @@
 use std::{mem::swap, ops};
 // used for comparing floats
 use float_cmp::{approx_eq, F32Margin};
+use crate::color::Color;
+
 use super::{Mat4, Quaternion};
 
 #[derive(Debug, Clone, Copy)]
@@ -16,6 +18,10 @@ impl Vector {
     /// Constructor
     pub fn new(x: f32, y: f32, z: f32) -> Vector {
         Vector { x: x, y: y, z: z , w: 1.0}
+    }
+
+    pub fn from_num(num: f32) -> Vector {
+        Vector { x: num, y: num, z: num, w: 1.0 }
     }
 
     /// create a vector that points from one point to another
@@ -166,6 +172,23 @@ impl Vector {
             i * eta - n * (eta * n_dot_i - k.sqrt())
         }
     }
+
+    pub fn random(min: f32, max: f32) -> Vector {
+        let x = min + (max - min) * rand::random::<f32>();
+        let y = min + (max - min) * rand::random::<f32>();
+        let z = min + (max - min) * rand::random::<f32>();
+        Vector::new(x, y, z)
+    }
+
+    pub fn lerp(a: &Vector, b: &Vector, t: f32) -> Vector {
+        *a * (1.0 - t) + *b * t
+    }
+}
+
+impl From<Color> for Vector {
+    fn from(color: Color) -> Vector {
+        Vector::new(color.r, color.g, color.b)
+    }
 }
 
 // + operator overload
@@ -222,6 +245,19 @@ impl ops::Mul<f32> for Vector {
             x: self.x * scalar,
             y: self.y * scalar,
             z: self.z * scalar,
+            w: self.w,
+        }
+    }
+}
+
+impl ops::Mul<Vector> for Vector {
+    type Output = Vector;
+
+    fn mul(self, other: Vector) -> Vector {
+        Vector {
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z,
             w: self.w,
         }
     }

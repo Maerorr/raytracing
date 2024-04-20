@@ -30,8 +30,16 @@ impl IntersectionPrimitive for Surface {
                 return RayCastHit::new(None);
             }
             let distance = (intersection - ray.point).length();
-            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance)
-            
+
+            if self.max_v.is_some() && self.max_w.is_some() {
+                let u = (ts.0 - self.max_v.unwrap().0) / (self.max_v.unwrap().1 - self.max_v.unwrap().0);
+                let v = (ts.1 - self.max_w.unwrap().0) / (self.max_w.unwrap().1 - self.max_w.unwrap().0);
+                let uv = (u, v);
+                //println!("uv: {:.3?}", uv);
+                return RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance).with_uv(uv)
+            }
+
+            RayCastHit::new(Some((intersection, angle))).with_normal(self.normal).with_distance(distance)//.with_uv(uv)
         } else {
             RayCastHit::new(None)
         }
@@ -77,13 +85,9 @@ impl IntersectionPrimitive for Sphere {
 impl IntersectionPrimitive for Triangle {
     fn intersect(&self, ray: &Line) -> RayCastHit {
         // MOLLER-TRUMBORE METHOD
-        //println!("ray: {}", ray.to_string());
         let v0v1 = self.vertices[1] - self.vertices[0];
-        //println!("v0v1: {}", v0v1.to_string());
         let v0v2 = self.vertices[2] - self.vertices[0];
-        //println!("v0v2: {}", v0v2.to_string());
         let pvec = ray.direction.cross(&v0v2);
-        //println!("pvec: {}", pvec.to_string());
         let det = v0v1.dot(&pvec);
         //println!("det: {}", det);
         if det.abs() < 0.0001 {

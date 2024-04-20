@@ -1,7 +1,4 @@
 use core::panic;
-
-use raylib::color;
-
 use crate::color::Color;
 
 pub struct Buffer {
