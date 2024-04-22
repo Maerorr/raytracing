@@ -666,7 +666,13 @@ pub fn p_shoot_ray(ray: &Line, pinhole_position: Vector, scene: &Scene, material
 
                         let mut D = normal_distribution(&normal, &h, roughness);
                         if anisotropy > 0.001 {
-                            let tangent = (Vector::new(0.0, 0.0, 1.0).cross(&normal))._normalize();
+                            let tangent;
+                            if normal == Vector::new(0.0, 0.0, 1.0) {
+                                tangent = (Vector::new(0.0, 1.0, 0.0).cross(&normal))._normalize();
+                            } else {
+                                tangent = (Vector::new(0.0, 0.0, 1.0).cross(&normal))._normalize();
+                            }
+                            
                             let binormal = normal.cross(&tangent);
                             // calculate ax and ay based on anisotropy rotation
                             let mut v = Vector::new(1.0, 0.0, 0.0);

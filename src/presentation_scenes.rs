@@ -346,7 +346,7 @@ pub fn full_pbr_scene() -> (Scene, Vec<Material>) {
     let metal_anisotropic4 = Material::new_pbr(blue, 0.99, 0.99, 1.3, 1.0, as_radians(60.0));
     let metal_anisotropic5 = Material::new_pbr(blue, 0.99, 0.99, 1.3, 1.0, as_radians(75.0));
 
-    let walls_white = Material::new_pbr(Color::white(), 0.0, 0.9, 1.3, 0.0, as_radians(0.0));
+    let walls_white = Material::new_pbr(Color::white(), 0.99, 0.9, 1.3, 0.99, as_radians(15.0));
 
     let floor = Surface::new_vw(
         Vector::new(0.0, -900.0, 0.0),
