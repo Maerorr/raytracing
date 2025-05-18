@@ -404,30 +404,47 @@ pub fn full_pbr_scene() -> (Scene, Vec<Material>) {
     materials.push(metal_anisotropic4);
     materials.push(metal_anisotropic5);
 
-    let sphere1 = Sphere::new(Vector::new(-1000.0, 300.0, -500.0), 200.0);
-    let sphere2 = Sphere::new(Vector::new(-500.0, 300.0, -500.0), 200.0);
+    let mirror_mat = Material::new_reflective(
+        Color::green(),
+        0.2,
+        32.0,
+        10000.0,
+    );
+    materials.push(mirror_mat);
+    let glass_mat = Material::new_refractive(
+        Color::white(),
+        1.66,
+    );
+    materials.push(glass_mat);
+
+    //let sphere1 = Sphere::new(Vector::new(-1000.0, 300.0, -500.0), 200.0);
+    //let sphere2 = Sphere::new(Vector::new(-500.0, 300.0, -500.0), 200.0);
     let sphere3 = Sphere::new(Vector::new(0.0, 300.0, -500.0), 200.0);
     let sphere4 = Sphere::new(Vector::new(500.0, 300.0, -500.0), 200.0);
     let sphere5 = Sphere::new(Vector::new(1000.0, 300.0, -500.0), 200.0);
 
-    scene.add_primitive(Box::new(sphere1), 9);
-    scene.add_primitive(Box::new(sphere2), 10);
+    let mirror_sphere = Sphere::new(Vector::new(-1000.0, 300.0, -500.0), 200.0);
+    scene.add_primitive(Box::new(mirror_sphere), 14);
+
+    let glass_sphere = Sphere::new(Vector::new(-500.0, 300.0, -500.0), 200.0);
+    scene.add_primitive(Box::new(glass_sphere), 15);
+
     scene.add_primitive(Box::new(sphere3), 11);
     scene.add_primitive(Box::new(sphere4), 12);
     scene.add_primitive(Box::new(sphere5), 13);
 
-    let ambient = Light::new_ambient(Color::white(), 0.05);
+    let ambient = Light::new_ambient(Color::white(), 0.75);
     scene.add_light(ambient);
     
     let area_light = RectangleAreaLight::new(
         Vector::new(0.0, 0.0, 400.0),
         Color::white(),
-        (50.0, 0.002, 0.0001),
+        (1.0, 0.0001, 0.00001),
         Vector::new(0.0, 1.0, 0.0),
         Vector::new(1.0, 0.0, 0.0),
         50.0,
         50.0,
-        8.0,
+        9.0,
     );
     scene.add_lights(area_light.get_lights());
 
